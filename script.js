@@ -39,6 +39,7 @@ let spawnTimer;
 let fireTimer;
 let gameState;
 let playerName = "Player";
+let upgradeCounts;
 let scoreSaved = false;
 let lastTime = 0;
 
@@ -114,6 +115,14 @@ function resetGame() {
   const typedName = playerNameInput.value.trim();
   playerName = typedName || "Player";
   scoreSaved = false;
+  upgradeCounts = {
+    hp: 0,
+    shells: 0,
+    power: 0,
+    speed: 0,
+    fireRate: 0,
+    dualCannon: 0
+  };
 
   player = {
     x: canvas.width / 2,
@@ -124,7 +133,8 @@ function resetGame() {
     maxHp: 100,
     shellCount: 1,
     power: 1,
-    reload: 0.22
+    reload: 0.22,
+    dualCannon: false
   };
 
   playerBullets = [];
@@ -145,7 +155,7 @@ function resetGame() {
 }
 
 function getDifficultyBonus() {
-  return Math.max(0, wave - 5);
+  return Math.max(0, wave - 8);
 }
 
 function startWave() {
@@ -159,7 +169,7 @@ function startWave() {
   if (isBossWave()) {
     spawnBoss();
   } else {
-    enemiesToSpawn = 5 + wave * 3 + Math.floor(getDifficultyBonus() * 1.8);
+    enemiesToSpawn = 5 + Math.floor(wave * 2.4) + Math.floor(getDifficultyBonus() * 1.1);
   }
 
   updateHud();
@@ -213,8 +223,8 @@ function spawnEnemy() {
     x,
     y,
     radius: 20,
-    hp: 2 + Math.floor(wave * 0.5) + Math.floor(getDifficultyBonus() * 0.35),
-    speed: 60 + wave * 8 + getDifficultyBonus() * 6,
+    hp: 2 + Math.floor(wave * 0.38) + Math.floor(getDifficultyBonus() * 0.22),
+    speed: 58 + wave * 6 + getDifficultyBonus() * 3.5,
     shootCooldown: 0.8 + Math.random() * 1.4,
     type: Math.random() > 0.5 ? "triangle" : "square"
   });
@@ -226,7 +236,7 @@ function spawnMinion(x, y) {
     y: y + Math.random() * 120 - 60,
     radius: 16,
     hp: 2 + Math.floor(wave * 0.25),
-    speed: 80 + wave * 5,
+    speed: 76 + wave * 4,
     shootCooldown: 1.0 + Math.random(),
     type: "triangle",
     kind: "minion"
@@ -315,25 +325,31 @@ function shootBossPattern(boss) {
 function shootPlayerBullet() {
   const angle = Math.atan2(mouse.y - player.y, mouse.x - player.x);
   const spread = 0.12;
+  const cannonOffsets = player.dualCannon ? [-12, 12] : [0];
 
-  for (let i = 0; i < player.shellCount; i += 1) {
-    const offset = (i - (player.shellCount - 1) / 2) * spread;
-    playerBullets.push({
-      x: player.x + Math.cos(angle + offset) * 28,
-      y: player.y + Math.sin(angle + offset) * 28,
-      vx: Math.cos(angle + offset) * 620,
-      vy: Math.sin(angle + offset) * 620,
-      radius: 6,
-      damage: player.power,
-      life: 1.4
-    });
-  }
+  cannonOffsets.forEach(function (sideOffset) {
+    const sideX = Math.cos(angle + Math.PI / 2) * sideOffset;
+    const sideY = Math.sin(angle + Math.PI / 2) * sideOffset;
+
+    for (let i = 0; i < player.shellCount; i += 1) {
+      const offset = (i - (player.shellCount - 1) / 2) * spread;
+      playerBullets.push({
+        x: player.x + sideX + Math.cos(angle + offset) * 28,
+        y: player.y + sideY + Math.sin(angle + offset) * 28,
+        vx: Math.cos(angle + offset) * 620,
+        vy: Math.sin(angle + offset) * 620,
+        radius: 6,
+        damage: player.power,
+        life: 1.4
+      });
+    }
+  });
 }
 
 function shootEnemyBullet(enemy, options = {}) {
   const angle = options.angle ?? Math.atan2(player.y - enemy.y, player.x - enemy.x);
   const bonus = getDifficultyBonus();
-  const speed = options.speed ?? (150 + wave * 12 + bonus * 12);
+  const speed = options.speed ?? (145 + wave * 9 + bonus * 7);
 
   enemyBullets.push({
     x: enemy.x,
@@ -341,7 +357,7 @@ function shootEnemyBullet(enemy, options = {}) {
     vx: Math.cos(angle) * speed,
     vy: Math.sin(angle) * speed,
     radius: options.radius ?? 8,
-    damage: options.damage ?? (8 + wave + Math.floor(bonus * 0.8)),
+    damage: options.damage ?? (8 + wave * 0.75 + Math.floor(bonus * 0.45)),
     life: options.life ?? 6,
     bounces: options.bounces ?? 0,
     fireTrail: options.fireTrail ?? false,
@@ -380,10 +396,10 @@ function updatePlayer(dt) {
   let dx = 0;
   let dy = 0;
 
-  if (keys.ArrowUp || keys.w) dy -= 1;
-  if (keys.ArrowDown || keys.s) dy += 1;
-  if (keys.ArrowLeft || keys.a) dx -= 1;
-  if (keys.ArrowRight || keys.d) dx += 1;
+  if (keys.ArrowUp || keys.arrowup || keys.w) dy -= 1;
+  if (keys.ArrowDown || keys.arrowdown || keys.s) dy += 1;
+  if (keys.ArrowLeft || keys.arrowleft || keys.a) dx -= 1;
+  if (keys.ArrowRight || keys.arrowright || keys.d) dx += 1;
 
   if (dx !== 0 || dy !== 0) {
     const length = Math.hypot(dx, dy);
@@ -407,7 +423,7 @@ function updateEnemies(dt) {
   if (enemiesToSpawn > 0 && spawnTimer <= 0) {
     spawnEnemy();
     enemiesToSpawn -= 1;
-    spawnTimer = Math.max(0.15, 1.0 - wave * 0.04 - getDifficultyBonus() * 0.025);
+    spawnTimer = Math.max(0.22, 1.05 - wave * 0.028 - getDifficultyBonus() * 0.014);
   }
 
   enemies.forEach(function (enemy) {
@@ -432,13 +448,13 @@ function updateEnemies(dt) {
     if (enemy.shootCooldown <= 0) {
       shootEnemyBullet(enemy);
       enemy.shootCooldown = enemy.kind === "boss"
-        ? Math.max(0.32, 1.2 - wave * 0.018)
-        : Math.max(0.25, 1.7 - wave * 0.06 - getDifficultyBonus() * 0.035);
+        ? Math.max(0.42, 1.25 - wave * 0.012)
+        : Math.max(0.36, 1.75 - wave * 0.042 - getDifficultyBonus() * 0.018);
     }
 
     if (enemy.kind === "boss" && enemy.specialCooldown <= 0) {
       shootBossPattern(enemy);
-      enemy.specialCooldown = Math.max(1.0, 3.0 - Math.floor(wave / 10) * 0.08);
+      enemy.specialCooldown = Math.max(1.25, 3.15 - Math.floor(wave / 10) * 0.055);
     }
 
     if (getDistance(enemy, player) < enemy.radius + player.radius) {
@@ -563,14 +579,44 @@ function checkWaveClear() {
   }
 }
 
-function getUpgradePool() {
+function getUpgradeSummaryHTML() {
+  if (!upgradeCounts) {
+    return "";
+  }
+
   return [
+    `HP 증가: ${upgradeCounts.hp}회`,
+    `포탄 개수: ${upgradeCounts.shells}회`,
+    `포탄 위력: ${upgradeCounts.power}회`,
+    `이동속도: ${upgradeCounts.speed}/1회`,
+    `공격속도: ${upgradeCounts.fireRate}/2회`,
+    `보조 대포: ${upgradeCounts.dualCannon}/1회`
+  ].map(function (text) {
+    return `<li>${text}</li>`;
+  }).join("");
+}
+
+function renderUpgradeSummary() {
+  let summary = document.querySelector("#upgradeSummary");
+  if (!summary) {
+    summary = document.createElement("div");
+    summary.id = "upgradeSummary";
+    summary.className = "upgrade-summary";
+    upgradeOverlay.appendChild(summary);
+  }
+
+  summary.innerHTML = `<strong>선택한 능력</strong><ul>${getUpgradeSummaryHTML()}</ul>`;
+}
+
+function getUpgradePool() {
+  const pool = [
     {
       title: "HP 증가",
-      text: "최대 체력 +25, 체력 25 회복",
+      text: "최대 체력 +25, 체력 100 회복",
       apply: function () {
         player.maxHp += 25;
-        player.hp = Math.min(player.maxHp, player.hp + 25);
+        player.hp = Math.min(player.maxHp, player.hp + 100);
+        upgradeCounts.hp += 1;
       }
     },
     {
@@ -578,6 +624,7 @@ function getUpgradePool() {
       text: "한 번에 발사하는 포탄 +1",
       apply: function () {
         player.shellCount += 1;
+        upgradeCounts.shells += 1;
       }
     },
     {
@@ -585,9 +632,46 @@ function getUpgradePool() {
       text: "포탄 공격력 +1",
       apply: function () {
         player.power += 1;
+        upgradeCounts.power += 1;
       }
     }
   ];
+
+  if (upgradeCounts.speed < 1) {
+    pool.push({
+      title: "이동속도 증가",
+      text: "이동속도 +45 (한 판에 1번만 선택 가능)",
+      apply: function () {
+        player.speed += 45;
+        upgradeCounts.speed += 1;
+      }
+    });
+  }
+
+  if (upgradeCounts.fireRate < 2) {
+    pool.push({
+      title: "공격속도 증가",
+      text: "재장전 시간 15% 감소 (한 판에 2번까지 선택 가능)",
+      apply: function () {
+        player.reload = Math.max(0.11, player.reload * 0.85);
+        upgradeCounts.fireRate += 1;
+      }
+    });
+  }
+
+
+  if (upgradeCounts.dualCannon < 1) {
+    pool.push({
+      title: "보조 대포 추가",
+      text: "대포가 하나 더 생겨 양쪽에서 같은 포탄을 발사합니다 (한 판에 1번만 선택 가능)",
+      apply: function () {
+        player.dualCannon = true;
+        upgradeCounts.dualCannon += 1;
+      }
+    });
+  }
+
+  return pool;
 }
 
 function showUpgradeOptions() {
@@ -595,6 +679,7 @@ function showUpgradeOptions() {
     return Math.random() - 0.5;
   });
 
+  renderUpgradeSummary();
   upgradeList.innerHTML = "";
   pool.forEach(function (upgrade) {
     const button = document.createElement("button");
@@ -670,6 +755,14 @@ function drawPlayer() {
     ctx.translate(player.x, player.y);
     ctx.rotate(angle + Math.PI / 2);
     ctx.drawImage(tankImage, -32, -32, 64, 64);
+    if (player.dualCannon) {
+      ctx.rotate(-Math.PI / 2);
+      ctx.fillStyle = "#6b737c";
+      ctx.strokeStyle = "#47515b";
+      ctx.lineWidth = 3;
+      ctx.fillRect(-6, 3, 38, 12);
+      ctx.strokeRect(-6, 3, 38, 12);
+    }
     ctx.restore();
     return;
   }
@@ -682,6 +775,10 @@ function drawPlayer() {
   ctx.lineWidth = 3;
   ctx.fillRect(-6, -9, 38, 18);
   ctx.strokeRect(-6, -9, 38, 18);
+  if (player.dualCannon) {
+    ctx.fillRect(-6, 7, 38, 12);
+    ctx.strokeRect(-6, 7, 38, 12);
+  }
   ctx.rotate(Math.PI / 4);
 
   for (let i = 0; i < 4; i += 1) {
@@ -831,6 +928,23 @@ function gameLoop(time) {
   requestAnimationFrame(gameLoop);
 }
 
+function normalizeKey(event) {
+  const key = String(event.key || "").toLowerCase();
+  const code = String(event.code || "");
+
+  if (code === "KeyW") return "w";
+  if (code === "KeyA") return "a";
+  if (code === "KeyS") return "s";
+  if (code === "KeyD") return "d";
+  if (code === "ArrowUp") return "arrowup";
+  if (code === "ArrowDown") return "arrowdown";
+  if (code === "ArrowLeft") return "arrowleft";
+  if (code === "ArrowRight") return "arrowright";
+  if (code === "Space") return " ";
+  if (code === "Enter") return "enter";
+  return key;
+}
+
 function setKey(key, value) {
   keys[key] = value;
   keys[String(key).toLowerCase()] = value;
@@ -839,22 +953,22 @@ function setKey(key, value) {
 window.addEventListener("resize", resizeCanvas);
 
 window.addEventListener("keydown", function (event) {
-  const key = event.key;
-  const lowerKey = key.toLowerCase();
+  const key = normalizeKey(event);
 
-  if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright", " "].includes(lowerKey) || key === " ") {
+  if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright", " "].includes(key)) {
     event.preventDefault();
+    focusGame();
   }
 
   setKey(key, true);
 
-  if (key === "Enter" && !startOverlay.classList.contains("hidden")) {
+  if (key === "enter" && !startOverlay.classList.contains("hidden")) {
     resetGame();
   }
 }, { passive: false });
 
 window.addEventListener("keyup", function (event) {
-  setKey(event.key, false);
+  setKey(normalizeKey(event), false);
 }, { passive: false });
 
 canvas.addEventListener("mousemove", function (event) {
