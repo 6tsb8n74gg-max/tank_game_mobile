@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Tank Survival Mobile</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body tabindex="0">
+  <div class="game-shell">
+    <canvas id="gameCanvas" tabindex="0" aria-label="Tank Survival Game"></canvas>
+
+    <div class="hud">
+      <div><p class="label">Wave</p><strong id="waveText">1</strong></div>
+      <div><p class="label">Player</p><strong id="nameText">-</strong></div>
+      <div><p class="label">HP</p><strong id="hpText">100 / 100</strong></div>
+      <div><p class="label">Shells</p><strong id="shellText">1</strong></div>
+      <div><p class="label">Power</p><strong id="powerText">1</strong></div>
+      <button id="restartButton" type="button">재시작</button>
+    </div>
+
+    <div class="touch-controls" aria-hidden="false">
+      <div class="dpad">
+        <button data-key="w" class="pad up">▲</button>
+        <button data-key="a" class="pad left">◀</button>
+        <button data-key="s" class="pad down">▼</button>
+        <button data-key="d" class="pad right">▶</button>
+      </div>
+      <button id="fireButton" class="fire-button" type="button">발사</button>
+    </div>
+
+    <div id="startOverlay" class="overlay">
+      <section class="panel">
+        <h1>탱크 생존 게임</h1>
+        <p>모바일 외장 키보드: <b>WASD</b> 이동, <b>Space</b> 발사<br />터치: 왼쪽 방향키 이동, 오른쪽 발사 버튼</p>
+        <label class="name-label" for="playerNameInput">플레이어 이름</label>
+        <input id="playerNameInput" class="name-input" maxlength="12" placeholder="Player" />
+        <button id="startButton" type="button">게임 시작</button>
+        <div class="ranking-box">
+          <div class="ranking-header"><h2>랭킹판</h2><button id="clearRankingButton" class="sub-button" type="button">초기화</button></div>
+          <ol id="rankingList" class="ranking-list"></ol>
+        </div>
+      </section>
+    </div>
+
+    <div id="upgradeOverlay" class="overlay hidden">
+      <section class="panel">
+        <p class="overline">Wave Clear</p>
+        <h2>업그레이드를 선택하세요</h2>
+        <div id="upgradeList" class="upgrade-list"></div>
+      </section>
+    </div>
+
+    <div id="gameOverOverlay" class="overlay hidden">
+      <section class="panel">
+        <p class="overline">Game Over</p>
+        <h2 id="resultTitle">탱크가 파괴되었습니다</h2>
+        <p id="resultText">Wave 1까지 도달했습니다.</p>
+        <div class="ranking-box"><h2>랭킹판</h2><ol id="gameOverRankingList" class="ranking-list"></ol></div>
+        <button id="gameOverRestartButton" type="button">다시 시작</button>
+      </section>
+    </div>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>
