@@ -20,7 +20,7 @@ const resultTitle = document.querySelector('#resultTitle');
 const resultText = document.querySelector('#resultText');
 const keys = Object.create(null);
 const mouse = { x: 0, y: 0, down: false };
-const RANKING_KEY = 'tankSurvivalRankingMobile';
+const RANKING_KEY = 'tankSurvivalRanking';
 let player, playerBullets, enemyBullets, enemies, particles, wave, enemiesToSpawn, spawnTimer, fireTimer, gameState;
 let playerName = 'Player';
 let scoreSaved = false;
@@ -43,7 +43,7 @@ function spawnEnemy(){const edge=Math.floor(Math.random()*4);let x=0,y=0;if(edge
 function shootPlayerBullet(){let angle=Math.atan2(mouse.y-player.y,mouse.x-player.x); if(!Number.isFinite(angle)) angle=-Math.PI/2; const spread=.12;for(let i=0;i<player.shellCount;i++){const o=(i-(player.shellCount-1)/2)*spread;playerBullets.push({x:player.x+Math.cos(angle+o)*28,y:player.y+Math.sin(angle+o)*28,vx:Math.cos(angle+o)*620,vy:Math.sin(angle+o)*620,radius:6,damage:player.power,life:1.4})}}
 function shootEnemyBullet(e){const a=Math.atan2(player.y-e.y,player.x-e.x), speed=150+wave*12;enemyBullets.push({x:e.x,y:e.y,vx:Math.cos(a)*speed,vy:Math.sin(a)*speed,radius:8,damage:8+wave,life:6})}
 function addParticles(x,y,c){for(let i=0;i<8;i++){const a=Math.random()*Math.PI*2,s=40+Math.random()*120;particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,radius:2+Math.random()*3,color:c,life:.45})}}
-function updatePlayer(dt){let dx=0,dy=0;if(keys.arrowup||keys.w)dy--;if(keys.arrowdown||keys.s)dy++;if(keys.arrowleft||keys.a)dx--;if(keys.arrowright||keys.d)dx++;if(dx||dy){const l=Math.hypot(dx,dy);player.x+=(dx/l)*player.speed*dt;player.y+=(dy/l)*player.speed*dt;mouse.x=player.x+dx*120;mouse.y=player.y+dy*120}player.x=clamp(player.x,player.radius,vw()-player.radius);player.y=clamp(player.y,player.radius,vh()-player.radius);fireTimer-=dt;if((mouse.down||keys[' ']||keys.spacebar)&&fireTimer<=0){shootPlayerBullet();fireTimer=player.reload}}
+function updatePlayer(dt){let dx=0,dy=0;if(keys.arrowup||keys.w)dy--;if(keys.arrowdown||keys.s)dy++;if(keys.arrowleft||keys.a)dx--;if(keys.arrowright||keys.d)dx++;if(dx||dy){const l=Math.hypot(dx,dy);player.x+=(dx/l)*player.speed*dt;player.y+=(dy/l)*player.speed*dt}player.x=clamp(player.x,player.radius,vw()-player.radius);player.y=clamp(player.y,player.radius,vh()-player.radius);fireTimer-=dt;if(mouse.down&&fireTimer<=0){shootPlayerBullet();fireTimer=player.reload}}
 function updateEnemies(dt){spawnTimer-=dt;if(enemiesToSpawn>0&&spawnTimer<=0){spawnEnemy();enemiesToSpawn--;spawnTimer=Math.max(.18,1-wave*.035)}enemies.forEach(e=>{const a=Math.atan2(player.y-e.y,player.x-e.x);e.x+=Math.cos(a)*e.speed*dt;e.y+=Math.sin(a)*e.speed*dt;e.shootCooldown-=dt;if(e.shootCooldown<=0){shootEnemyBullet(e);e.shootCooldown=Math.max(.3,1.7-wave*.06)}if(dist(e,player)<e.radius+player.radius)player.hp-=18*dt})}
 function updateBullets(dt){playerBullets.forEach(b=>{b.x+=b.vx*dt;b.y+=b.vy*dt;b.life-=dt});enemyBullets.forEach(b=>{b.x+=b.vx*dt;b.y+=b.vy*dt;b.life-=dt;if(dist(b,player)<b.radius+player.radius){player.hp-=b.damage;b.life=0;addParticles(player.x,player.y,'#ef4444')}});playerBullets.forEach(b=>enemies.forEach(e=>{if(b.life>0&&e.hp>0&&dist(b,e)<b.radius+e.radius){e.hp-=b.damage;b.life=0;addParticles(e.x,e.y,'#f59e0b')}}));enemies=enemies.filter(e=>e.hp>0);playerBullets=playerBullets.filter(b=>b.life>0&&b.x>-60&&b.x<vw()+60&&b.y>-60&&b.y<vh()+60);enemyBullets=enemyBullets.filter(b=>b.life>0&&b.x>-80&&b.x<vw()+80&&b.y>-80&&b.y<vh()+80)}
 function updateParticles(dt){particles.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt});particles=particles.filter(p=>p.life>0)}
@@ -59,12 +59,12 @@ function draw(){drawGrid();if(!player)return;drawBullets();enemies.forEach(drawE
 function update(dt){if(gameState!=='playing')return;updatePlayer(dt);updateEnemies(dt);updateBullets(dt);updateParticles(dt);checkWaveClear();updateHud();if(player.hp<=0)endGame()}
 function gameLoop(time){const dt=Math.min(.033,(time-lastTime)/1000||0);lastTime=time;update(dt);draw();requestAnimationFrame(gameLoop)}
 function setKey(k,v){keys[String(k).toLowerCase()]=v}
-window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright',' ','spacebar'].includes(k))e.preventDefault();setKey(k,true);if(k==='enter'&&!startOverlay.classList.contains('hidden'))resetGame()},{passive:false});
+window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(k))e.preventDefault();setKey(k,true);if(k==='enter'&&!startOverlay.classList.contains('hidden'))resetGame()},{passive:false});
 window.addEventListener('keyup',e=>setKey(e.key,false));
-canvas.addEventListener('pointermove',e=>{const r=canvas.getBoundingClientRect();mouse.x=e.clientX-r.left;mouse.y=e.clientY-r.top},{passive:true});
-canvas.addEventListener('pointerdown',e=>{focusGame();const r=canvas.getBoundingClientRect();mouse.x=e.clientX-r.left;mouse.y=e.clientY-r.top;mouse.down=true},{passive:true});
-window.addEventListener('pointerup',()=>mouse.down=false);
-document.querySelectorAll('[data-key]').forEach(btn=>{const k=btn.dataset.key;btn.addEventListener('pointerdown',e=>{e.preventDefault();focusGame();setKey(k,true)},{passive:false});btn.addEventListener('pointerup',()=>setKey(k,false));btn.addEventListener('pointercancel',()=>setKey(k,false));btn.addEventListener('pointerleave',()=>setKey(k,false))});
-document.querySelector('#fireButton').addEventListener('pointerdown',e=>{e.preventDefault();focusGame();mouse.down=true},{passive:false});document.querySelector('#fireButton').addEventListener('pointerup',()=>mouse.down=false);document.querySelector('#fireButton').addEventListener('pointercancel',()=>mouse.down=false);
+canvas.addEventListener('mousemove',e=>{const r=canvas.getBoundingClientRect();mouse.x=e.clientX-r.left;mouse.y=e.clientY-r.top;focusGame()},{passive:true});
+canvas.addEventListener('mousedown',e=>{if(e.button!==0)return;focusGame();const r=canvas.getBoundingClientRect();mouse.x=e.clientX-r.left;mouse.y=e.clientY-r.top;mouse.down=true;e.preventDefault()},{passive:false});
+window.addEventListener('mouseup',()=>mouse.down=false);
+window.addEventListener('blur',()=>{mouse.down=false;for(const k in keys)keys[k]=false});
+canvas.addEventListener('contextmenu',e=>e.preventDefault());
 startButton.onclick=resetGame;restartButton.onclick=resetGame;gameOverRestartButton.onclick=()=>{gameOverOverlay.classList.add('hidden');startOverlay.classList.remove('hidden');playerNameInput.focus()};clearRankingButton.onclick=()=>{localStorage.removeItem(RANKING_KEY);renderRanking()};
 window.addEventListener('resize',resizeCanvas);resizeCanvas();renderRanking();drawGrid();requestAnimationFrame(gameLoop);

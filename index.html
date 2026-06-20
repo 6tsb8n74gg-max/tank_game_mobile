@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Tank Survival Mobile</title>
+  <title>Tank Survival</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body tabindex="0">
@@ -19,20 +19,10 @@
       <button id="restartButton" type="button">재시작</button>
     </div>
 
-    <div class="touch-controls" aria-hidden="false">
-      <div class="dpad">
-        <button data-key="w" class="pad up">▲</button>
-        <button data-key="a" class="pad left">◀</button>
-        <button data-key="s" class="pad down">▼</button>
-        <button data-key="d" class="pad right">▶</button>
-      </div>
-      <button id="fireButton" class="fire-button" type="button">발사</button>
-    </div>
-
     <div id="startOverlay" class="overlay">
       <section class="panel">
         <h1>탱크 생존 게임</h1>
-        <p>모바일 외장 키보드: <b>WASD</b> 이동, <b>Space</b> 발사<br />터치: 왼쪽 방향키 이동, 오른쪽 발사 버튼</p>
+        <p><b>WASD</b> 이동 · <b>마우스 이동</b> 조준 · <b>마우스 좌클릭</b> 발사</p>
         <label class="name-label" for="playerNameInput">플레이어 이름</label>
         <input id="playerNameInput" class="name-input" maxlength="12" placeholder="Player" />
         <button id="startButton" type="button">게임 시작</button>
