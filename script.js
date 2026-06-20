@@ -26,7 +26,7 @@ const tankImage = new Image();
 tankImage.src = "tank.png";
 
 const RANKING_KEY = "tankSurvivalRanking";
-const GAME_VERSION = "side-cannon-same-direction-v9";
+const GAME_VERSION = "tier-bullets-stronger-bosses-v10";
 
 let player;
 let playerBullets;
@@ -60,8 +60,26 @@ const bossTypes = [
   { id: "vortex", name: "소용돌이 보스", color: "#818cf8" },
   { id: "mirror", name: "거울 분신 보스", color: "#f472b6" },
   { id: "wall", name: "탄막 장벽 보스", color: "#fb923c" },
-  { id: "curse", name: "저주 보스", color: "#a78bfa" }
+  { id: "curse", name: "저주 보스", color: "#a78bfa" },
+  { id: "charger", name: "파괴 돌진 보스", color: "#dc2626" },
+  { id: "slime", name: "슬라임 분열 보스", color: "#84cc16" }
 ];
+
+const BULLET_TIERS = [
+  { name: "노랑포탄", color: "#facc15" },
+  { name: "빨강포탄", color: "#ef4444" },
+  { name: "파랑포탄", color: "#3b82f6" },
+  { name: "초록포탄", color: "#22c55e" },
+  { name: "보라포탄", color: "#a855f7" },
+  { name: "주황포탄", color: "#f97316" },
+  { name: "하늘포탄", color: "#06b6d4" },
+  { name: "분홍포탄", color: "#ec4899" },
+  { name: "흰색포탄", color: "#f8fafc" },
+  { name: "검정포탄", color: "#111827" }
+];
+
+const MAX_WAVE = 100;
+const BOSS_POWER_MULTIPLIER = 10;
 
 function focusGame() {
   canvas.focus({ preventScroll: true });
@@ -190,7 +208,7 @@ function updateHud() {
   waveText.textContent = wave;
   nameText.textContent = playerName;
   hpText.textContent = `${Math.max(0, Math.ceil(player.hp))} / ${player.maxHp}`;
-  shellText.textContent = player.shellCount;
+  shellText.textContent = updateShellHudText();
   powerText.textContent = player.power;
 }
 
@@ -234,7 +252,7 @@ function spawnEnemy() {
     x,
     y,
     radius: 20,
-    hp: 2 + Math.floor(wave * 0.56) + Math.floor(getDifficultyBonus() * 0.24),
+    hp: 8 + Math.floor(wave * 2.8) + Math.floor(getDifficultyBonus() * 1.4),
     speed: Math.min(180, 54 + wave * 9 + getDifficultyBonus() * 4.4),
     shootCooldown: 0.8 + Math.random() * 1.4,
     type: Math.random() > 0.5 ? "triangle" : "square"
@@ -246,7 +264,7 @@ function spawnMinion(x, y) {
     x: x + Math.random() * 120 - 60,
     y: y + Math.random() * 120 - 60,
     radius: 16,
-    hp: 2 + Math.floor(wave * 0.36),
+    hp: 6 + Math.floor(wave * 1.8),
     speed: Math.min(200, 70 + wave * 6),
     shootCooldown: 1.0 + Math.random(),
     type: "triangle",
@@ -263,8 +281,8 @@ function spawnBoss() {
     x: canvas.width / 2,
     y: 90,
     radius: isArmorBoss ? 48 : 42,
-    hp: (220 + bossLevel * 240) * (isArmorBoss ? 2.2 : 1),
-    maxHp: (220 + bossLevel * 240) * (isArmorBoss ? 2.2 : 1),
+    hp: (260 + bossLevel * 90) * getBossScaling() * (isArmorBoss ? 2.2 : 1),
+    maxHp: (260 + bossLevel * 90) * getBossScaling() * (isArmorBoss ? 2.2 : 1),
     speed: Math.min(150, 55 + bossLevel * 10),
     shootCooldown: 0.85,
     specialCooldown: 2.0,
@@ -291,7 +309,7 @@ function spawnMinionAtRandom(kind = "normal") {
     x: p.x,
     y: p.y,
     radius: elite ? 19 : 16,
-    hp: elite ? 4 + Math.floor(wave * 0.6) : 2 + Math.floor(wave * 0.36),
+    hp: elite ? 18 + Math.floor(wave * 3.2) : 8 + Math.floor(wave * 1.8),
     speed: Math.min(elite ? 215 : 200, elite ? 88 + wave * 6.8 : 70 + wave * 6),
     shootCooldown: elite ? 0.7 + Math.random() * 0.6 : 1.0 + Math.random(),
     type: elite ? "square" : "triangle",
@@ -560,23 +578,75 @@ function shootBossPattern(boss) {
     return;
   }
 
+
+  if (boss.bossId === "charger") {
+    const dashDistance = Math.min(320, boss.speed * 3.8);
+    boss.x += Math.cos(aim) * dashDistance;
+    boss.y += Math.sin(aim) * dashDistance;
+    boss.x = clamp(boss.x, boss.radius, canvas.width - boss.radius);
+    boss.y = clamp(boss.y, boss.radius + 70, canvas.height - boss.radius);
+    shootRadial(boss, 14, 230 + wave * 6, 10, 28 + wave * 1.4, "#dc2626", aim);
+    createWarningZone(player.x, player.y, 70, 0.45, 45 + wave * 2.0, "#dc2626");
+    return;
+  }
+
+  if (boss.bossId === "slime") {
+    for (let i = 0; i < 4; i += 1) {
+      spawnMinionAtRandom("elite");
+    }
+    shootRadial(boss, 16, 145 + wave * 4.2, 12, 20 + wave * 1.0, "#84cc16", t);
+    for (let i = 0; i < 3; i += 1) {
+      const p = randomMapPoint(80);
+      createWarningZone(p.x, p.y, 62, 0.75, 25 + wave * 1.1, "#84cc16");
+    }
+    return;
+  }
+
   bossProjectile(boss, { radius: 12, damage: 24 + wave * 1.6, speed: 190 + wave * 11, color: "#94a3b8" });
+}
+
+
+function getBulletTierInfo() {
+  const rawCount = Math.max(1, player.shellCount);
+  const tierIndex = Math.min(BULLET_TIERS.length - 1, Math.floor(Math.log10(rawCount)));
+  const tierBase = Math.pow(10, tierIndex);
+  const tierBulletCount = Math.max(1, Math.floor(rawCount / tierBase));
+  const tier = BULLET_TIERS[tierIndex] || BULLET_TIERS[BULLET_TIERS.length - 1];
+
+  return {
+    tierIndex,
+    tierName: tier.name,
+    color: tier.color,
+    bulletCount: tierBulletCount,
+    damageMultiplier: Math.pow(10, tierIndex)
+  };
+}
+
+function getBossScaling() {
+  const bossLevel = Math.max(1, Math.floor(wave / 5));
+  return Math.pow(BOSS_POWER_MULTIPLIER, bossLevel - 1);
+}
+
+function updateShellHudText() {
+  if (!player) return "-";
+  const info = getBulletTierInfo();
+  return `${info.tierName} × ${info.bulletCount}`;
 }
 
 function shootPlayerBullet() {
   const angle = Math.atan2(mouse.y - player.y, mouse.x - player.x);
   const spread = 0.12;
+  const info = getBulletTierInfo();
 
-  // 보조 대포는 원래 대포 바로 한쪽 옆에 붙고, 둘 다 같은 방향으로 발사합니다.
-  // 예: --0-- → --00-
+  // 보조 대포는 원래 대포 한쪽 옆에 붙고 같은 방향으로 발사합니다.
   const cannonOffsets = player.dualCannon ? [0, 13] : [0];
 
   cannonOffsets.forEach(function (sideOffset) {
     const sideX = Math.cos(angle + Math.PI / 2) * sideOffset;
     const sideY = Math.sin(angle + Math.PI / 2) * sideOffset;
 
-    for (let i = 0; i < player.shellCount; i += 1) {
-      const offset = (i - (player.shellCount - 1) / 2) * spread;
+    for (let i = 0; i < info.bulletCount; i += 1) {
+      const offset = (i - (info.bulletCount - 1) / 2) * spread;
       const shotAngle = angle + offset;
 
       playerBullets.push({
@@ -584,9 +654,11 @@ function shootPlayerBullet() {
         y: player.y + sideY + Math.sin(shotAngle) * 28,
         vx: Math.cos(shotAngle) * 620,
         vy: Math.sin(shotAngle) * 620,
-        radius: 6,
-        damage: player.power,
-        life: 1.4
+        radius: 6 + info.tierIndex * 1.2,
+        damage: player.power * info.damageMultiplier,
+        life: 1.4,
+        color: info.color,
+        tierIndex: info.tierIndex
       });
     }
   });
@@ -596,6 +668,7 @@ function shootEnemyBullet(enemy, options = {}) {
   const angle = options.angle ?? Math.atan2(player.y - enemy.y, player.x - enemy.x);
   const bonus = getDifficultyBonus();
   const speed = options.speed ?? (130 + wave * 13 + bonus * 9);
+  const effectiveDamage = (options.damage ?? (12 + wave * 2.8 + Math.floor(bonus * 1.2))) * (enemy.kind === "boss" ? getBossScaling() : 1);
 
   enemyBullets.push({
     x: enemy.x,
@@ -603,13 +676,13 @@ function shootEnemyBullet(enemy, options = {}) {
     vx: Math.cos(angle) * speed,
     vy: Math.sin(angle) * speed,
     radius: options.radius ?? 8,
-    damage: options.damage ?? (6 + wave * 1.1 + Math.floor(bonus * 0.5)),
+    damage: options.damage ?? (12 + wave * 2.8 + Math.floor(bonus * 1.2)),
     life: options.life ?? 6,
     bounces: options.bounces ?? 0,
     fireTrail: options.fireTrail ?? false,
     fireTimer: 0,
     color: options.color ?? "#f06455",
-    unbreakable: options.unbreakable ?? false,
+    unbreakable: options.unbreakable ?? enemy.kind === "boss",
     homing: options.homing ?? false,
     turnRate: options.turnRate ?? 0,
     splitOnExpire: options.splitOnExpire ?? false,
@@ -711,7 +784,7 @@ function updateEnemies(dt) {
     }
 
     if (getDistance(enemy, player) < enemy.radius + player.radius) {
-      player.hp -= enemy.kind === "boss" ? 70 * dt : 16 * dt;
+      player.hp -= enemy.kind === "boss" ? (90 + wave * 3) * dt : (24 + wave * 0.8) * dt;
     }
   });
 }
@@ -873,7 +946,7 @@ function updateParticles(dt) {
 
 function checkWaveClear() {
   if (gameState === "playing" && enemiesToSpawn === 0 && enemies.length === 0) {
-    if (wave >= 100) {
+    if (wave >= MAX_WAVE) {
       endVictory();
       return;
     }
@@ -890,7 +963,7 @@ function getUpgradeSummaryHTML() {
 
   return [
     `HP 증가: ${upgradeCounts.hp}회`,
-    `포탄 개수: ${upgradeCounts.shells}/10회`,
+    `포탄 개수 강화: ${upgradeCounts.shells}회`,
     `포탄 위력: ${upgradeCounts.power}회`,
     `이동속도: ${upgradeCounts.speed}/1회`,
     `공격속도: ${upgradeCounts.fireRate}/1회`,
@@ -933,10 +1006,10 @@ function getUpgradePool() {
     }
   ];
 
-  if (upgradeCounts.shells < 10) {
+  if (true) {
     pool.push({
-      title: "포탄 개수 증가",
-      text: "한 번에 발사하는 포탄 +1 (한 판에 10번까지 선택 가능)",
+      title: "포탄 개수/등급 강화",
+      text: "포탄 단계 누적 +1 (10개마다 다음 색 포탄 1개로 강화)",
       apply: function () {
         player.shellCount += 1;
         upgradeCounts.shells += 1;
@@ -1021,10 +1094,10 @@ function endGame() {
 
 function endVictory() {
   gameState = "over";
-  wave = 100;
+  wave = MAX_WAVE;
 
   if (!scoreSaved) {
-    addRanking(playerName, 100);
+    addRanking(playerName, MAX_WAVE);
     scoreSaved = true;
   }
 
@@ -1176,9 +1249,9 @@ function drawBullets() {
   playerBullets.forEach(function (bullet) {
     ctx.beginPath();
     ctx.arc(bullet.x, bullet.y, bullet.radius, 0, Math.PI * 2);
-    ctx.fillStyle = "#facc15";
+    ctx.fillStyle = bullet.color || "#facc15";
     ctx.fill();
-    ctx.strokeStyle = "#7c6f19";
+    ctx.strokeStyle = bullet.tierIndex && bullet.tierIndex >= 1 ? "#111827" : "#7c6f19";
     ctx.stroke();
   });
 
