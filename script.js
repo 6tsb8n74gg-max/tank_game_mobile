@@ -26,7 +26,7 @@ const tankImage = new Image();
 tankImage.src = "tank.png";
 
 const RANKING_KEY = "tankSurvivalRanking";
-const GAME_VERSION = "player-power9-hp300-fixed-v13";
+const GAME_VERSION = "attack45-bossboost-bigshot-explosion-v15";
 
 let player;
 let playerBullets;
@@ -79,6 +79,7 @@ const BULLET_TIERS = [
 ];
 
 const MAX_WAVE = 100;
+const PLAYER_ATTACK_MULTIPLIER = 3;
 const BOSS_POWER_MULTIPLIER = 10;
 
 function focusGame() {
@@ -147,7 +148,7 @@ function resetGame() {
   upgradeCounts = {
     hp: 300,
     shells: 0,
-    power: 9,
+    power: 1,
     speed: 0,
     fireRate: 0,
     dualCannon: 0
@@ -209,7 +210,7 @@ function updateHud() {
   nameText.textContent = playerName;
   hpText.textContent = `${Math.max(0, Math.ceil(player.hp))} / ${player.maxHp}`;
   shellText.textContent = updateShellHudText();
-  powerText.textContent = player.power;
+  powerText.textContent = `${player.power} x${((player.attackMultiplier || 1) * PLAYER_ATTACK_MULTIPLIER).toFixed(1)}`;
 }
 
 function getDistance(a, b) {
@@ -340,7 +341,7 @@ function shootSpiral(enemy, count, baseAngle, spread, speed, radius, damage, col
 
 
 function bossProjectile(enemy, options = {}) {
-  options.unbreakable = false;
+  options.unbreakable = options.unbreakable ?? false;
   if (options.bulletHp == null) {
     options.bulletHp = ((options.radius ?? 8) >= 12 || options.homing || options.splitOnExpire || options.mine || options.fireTrail || options.bounces) ? 4 : 1;
   }
@@ -388,7 +389,12 @@ function shootBossPattern(boss) {
       radius: 26,
       damage: 52 + wave * 2.8,
       speed: 180 + wave * 11,
-      color: "#7f1d1d"
+      color: "#7f1d1d",
+      unbreakable: true,
+      bulletHp: 999999,
+      explodeOnWall: true,
+      explosionRadius: 170,
+      explosionDamage: 95 + wave * 3
     });
     shootSpiral(boss, 6, aim, 0.27, 195 + wave * 4.6, 8, 12 + wave * 0.45, "#fca5a5");
     return;
@@ -658,7 +664,7 @@ function shootPlayerBullet() {
         vx: Math.cos(shotAngle) * 620,
         vy: Math.sin(shotAngle) * 620,
         radius: 6 + info.tierIndex * 1.2,
-        damage: player.power * info.damageMultiplier,
+        damage: player.power * info.damageMultiplier * PLAYER_ATTACK_MULTIPLIER * (player.attackMultiplier || 1),
         life: 1.4,
         color: info.color,
         tierIndex: info.tierIndex
@@ -685,7 +691,7 @@ function shootEnemyBullet(enemy, options = {}) {
     fireTrail: options.fireTrail ?? false,
     fireTimer: 0,
     color: options.color ?? "#f06455",
-    unbreakable: options.unbreakable ?? enemy.kind === "boss",
+    unbreakable: options.unbreakable ?? false,
     homing: options.homing ?? false,
     turnRate: options.turnRate ?? 0,
     splitOnExpire: options.splitOnExpire ?? false,
@@ -694,6 +700,29 @@ function shootEnemyBullet(enemy, options = {}) {
     unbreakable: false,
     bulletHp: options.bulletHp ?? (enemy.kind === "boss" && ((options.radius ?? 8) >= 12 || options.homing || options.splitOnExpire || options.mine || options.fireTrail || options.bounces) ? 4 : 1)
   });
+}
+
+function createExplosion(x, y, radius, damage, color = "#ef4444") {
+  const ex = clamp(x, 0, canvas.width);
+  const ey = clamp(y, 0, canvas.height);
+  const distance = Math.hypot(player.x - ex, player.y - ey);
+
+  if (distance < radius + player.radius) {
+    const ratio = Math.max(0, 1 - distance / radius);
+    player.hp -= damage * ratio;
+  }
+
+  fireZones.push({
+    x: ex,
+    y: ey,
+    radius,
+    damage: 0,
+    life: 0.65,
+    explosion: true,
+    color
+  });
+
+  addParticles(ex, ey, color);
 }
 
 function addFireZone(x, y) {
@@ -859,12 +888,16 @@ function updateBullets(dt) {
       const crashDistance = playerBullet.radius + enemyBullet.radius;
       if (playerBullet.life > 0 && enemyBullet.life > 0 && getDistance(playerBullet, enemyBullet) < crashDistance) {
         playerBullet.life = 0;
-        enemyBullet.bulletHp = (enemyBullet.bulletHp ?? 1) - 1;
-        if (enemyBullet.bulletHp <= 0) {
-          enemyBullet.life = 0;
-          addParticles(enemyBullet.x, enemyBullet.y, "#facc15");
+        if (enemyBullet.unbreakable) {
+          addParticles(playerBullet.x, playerBullet.y, "#ef4444");
         } else {
-          addParticles(enemyBullet.x, enemyBullet.y, "#93c5fd");
+          enemyBullet.bulletHp = (enemyBullet.bulletHp ?? 1) - 1;
+          if (enemyBullet.bulletHp <= 0) {
+            enemyBullet.life = 0;
+            addParticles(enemyBullet.x, enemyBullet.y, "#facc15");
+          } else {
+            addParticles(enemyBullet.x, enemyBullet.y, "#93c5fd");
+          }
         }
       }
     });
@@ -952,6 +985,11 @@ function updateParticles(dt) {
 
 function checkWaveClear() {
   if (gameState === "playing" && enemiesToSpawn === 0 && enemies.length === 0) {
+    if (isBossWave()) {
+      player.attackMultiplier = (player.attackMultiplier || 1) * 2;
+      addParticles(player.x, player.y, "#22c55e");
+    }
+
     if (wave >= MAX_WAVE) {
       endVictory();
       return;
@@ -1074,6 +1112,10 @@ function showUpgradeOptions() {
     button.innerHTML = `<strong>${upgrade.title}</strong><span>${upgrade.text}</span>`;
     button.addEventListener("click", function () {
       upgrade.apply();
+      if (isBossWaveNumber(wave + 1)) {
+        player.attackMultiplier = (player.attackMultiplier || 1) * 2;
+        addParticles(player.x, player.y, "#facc15");
+      }
       wave += 1;
       upgradeOverlay.classList.add("hidden");
       focusGame();
