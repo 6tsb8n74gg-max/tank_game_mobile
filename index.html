@@ -1,56 +1,82 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Tank Survival</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>탱크 웨이브 생존 게임</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body tabindex="0">
-  <div class="game-shell">
-    <canvas id="gameCanvas" tabindex="0" aria-label="Tank Survival Game"></canvas>
-
-    <div class="hud">
-      <div><p class="label">Wave</p><strong id="waveText">1</strong></div>
-      <div><p class="label">Player</p><strong id="nameText">-</strong></div>
-      <div><p class="label">HP</p><strong id="hpText">100 / 100</strong></div>
-      <div><p class="label">Shells</p><strong id="shellText">1</strong></div>
-      <div><p class="label">Power</p><strong id="powerText">1</strong></div>
+  <main class="game-shell">
+    <section class="hud">
+      <div>
+        <p class="label">Wave</p>
+        <strong id="waveText">1</strong>
+      </div>
+      <div>
+        <p class="label">Player</p>
+        <strong id="nameText">-</strong>
+      </div>
+      <div>
+        <p class="label">HP</p>
+        <strong id="hpText">100 / 100</strong>
+      </div>
+      <div>
+        <p class="label">Shells</p>
+        <strong id="shellText">1</strong>
+      </div>
+      <div>
+        <p class="label">Power</p>
+        <strong id="powerText">1</strong>
+      </div>
       <button id="restartButton" type="button">재시작</button>
-    </div>
+    </section>
 
-    <div id="startOverlay" class="overlay">
-      <section class="panel">
+    <canvas id="gameCanvas" width="1280" height="720" tabindex="0" aria-label="Tank Survival Game"></canvas>
+
+    <section id="startOverlay" class="overlay">
+      <div class="panel">
+        <p class="label">Tank Survival</p>
         <h1>탱크 생존 게임</h1>
-        <p><b>WASD</b> 이동 · <b>마우스 이동</b> 조준 · <b>마우스 좌클릭</b> 발사</p>
+        <p>방향키 또는 WASD로 움직이고, 마우스 이동으로 조준하고, 마우스 좌클릭으로 포탄을 발사하세요.</p>
+
         <label class="name-label" for="playerNameInput">플레이어 이름</label>
-        <input id="playerNameInput" class="name-input" maxlength="12" placeholder="Player" />
+        <input id="playerNameInput" class="name-input" type="text" maxlength="12" placeholder="이름 입력">
+
         <button id="startButton" type="button">게임 시작</button>
+
         <div class="ranking-box">
-          <div class="ranking-header"><h2>랭킹판</h2><button id="clearRankingButton" class="sub-button" type="button">초기화</button></div>
+          <div class="ranking-header">
+            <h2>랭킹판</h2>
+            <button id="clearRankingButton" class="sub-button" type="button">초기화</button>
+          </div>
           <ol id="rankingList" class="ranking-list"></ol>
         </div>
-      </section>
-    </div>
+      </div>
+    </section>
 
-    <div id="upgradeOverlay" class="overlay hidden">
-      <section class="panel">
-        <p class="overline">Wave Clear</p>
+    <section id="upgradeOverlay" class="overlay hidden">
+      <div class="panel">
+        <p class="label">Wave Clear</p>
         <h2>업그레이드를 선택하세요</h2>
         <div id="upgradeList" class="upgrade-list"></div>
-      </section>
-    </div>
+      </div>
+    </section>
 
-    <div id="gameOverOverlay" class="overlay hidden">
-      <section class="panel">
-        <p class="overline">Game Over</p>
+    <section id="gameOverOverlay" class="overlay hidden">
+      <div class="panel">
+        <p class="label">Game Over</p>
         <h2 id="resultTitle">탱크가 파괴되었습니다</h2>
         <p id="resultText">Wave 1까지 도달했습니다.</p>
-        <div class="ranking-box"><h2>랭킹판</h2><ol id="gameOverRankingList" class="ranking-list"></ol></div>
+        <div class="ranking-box">
+          <h2>랭킹판</h2>
+          <ol id="gameOverRankingList" class="ranking-list"></ol>
+        </div>
         <button id="gameOverRestartButton" type="button">다시 시작</button>
-      </section>
-    </div>
-  </div>
+      </div>
+    </section>
+  </main>
+
   <script src="script.js"></script>
 </body>
 </html>
