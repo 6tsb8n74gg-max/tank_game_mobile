@@ -26,6 +26,7 @@ const tankImage = new Image();
 tankImage.src = "tank.png";
 
 const RANKING_KEY = "tankSurvivalRanking";
+const GAME_VERSION = "dual-cannon-180-hp100-v2";
 
 let player;
 let playerBullets;
@@ -325,19 +326,18 @@ function shootBossPattern(boss) {
 function shootPlayerBullet() {
   const angle = Math.atan2(mouse.y - player.y, mouse.x - player.x);
   const spread = 0.12;
-  const cannonOffsets = player.dualCannon ? [-12, 12] : [0];
+  const cannonAngles = player.dualCannon ? [angle, angle + Math.PI] : [angle];
 
-  cannonOffsets.forEach(function (sideOffset) {
-    const sideX = Math.cos(angle + Math.PI / 2) * sideOffset;
-    const sideY = Math.sin(angle + Math.PI / 2) * sideOffset;
-
+  cannonAngles.forEach(function (cannonAngle) {
     for (let i = 0; i < player.shellCount; i += 1) {
       const offset = (i - (player.shellCount - 1) / 2) * spread;
+      const shotAngle = cannonAngle + offset;
+
       playerBullets.push({
-        x: player.x + sideX + Math.cos(angle + offset) * 28,
-        y: player.y + sideY + Math.sin(angle + offset) * 28,
-        vx: Math.cos(angle + offset) * 620,
-        vy: Math.sin(angle + offset) * 620,
+        x: player.x + Math.cos(shotAngle) * 28,
+        y: player.y + Math.sin(shotAngle) * 28,
+        vx: Math.cos(shotAngle) * 620,
+        vy: Math.sin(shotAngle) * 620,
         radius: 6,
         damage: player.power,
         life: 1.4
@@ -755,14 +755,16 @@ function drawPlayer() {
     ctx.translate(player.x, player.y);
     ctx.rotate(angle + Math.PI / 2);
     ctx.drawImage(tankImage, -32, -32, 64, 64);
+
     if (player.dualCannon) {
       ctx.rotate(-Math.PI / 2);
       ctx.fillStyle = "#6b737c";
       ctx.strokeStyle = "#47515b";
       ctx.lineWidth = 3;
-      ctx.fillRect(-6, 3, 38, 12);
-      ctx.strokeRect(-6, 3, 38, 12);
+      ctx.fillRect(-32, -6, 64, 12);
+      ctx.strokeRect(-32, -6, 64, 12);
     }
+
     ctx.restore();
     return;
   }
@@ -773,12 +775,15 @@ function drawPlayer() {
   ctx.fillStyle = "#6b737c";
   ctx.strokeStyle = "#47515b";
   ctx.lineWidth = 3;
+
   ctx.fillRect(-6, -9, 38, 18);
   ctx.strokeRect(-6, -9, 38, 18);
+
   if (player.dualCannon) {
-    ctx.fillRect(-6, 7, 38, 12);
-    ctx.strokeRect(-6, 7, 38, 12);
+    ctx.fillRect(-38, -7, 32, 14);
+    ctx.strokeRect(-38, -7, 32, 14);
   }
+
   ctx.rotate(Math.PI / 4);
 
   for (let i = 0; i < 4; i += 1) {
@@ -1023,3 +1028,4 @@ resizeCanvas();
 renderRanking();
 drawGrid();
 requestAnimationFrame(gameLoop);
+console.log("Tank Game Version:", GAME_VERSION);
