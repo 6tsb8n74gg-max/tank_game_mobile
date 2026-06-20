@@ -26,7 +26,7 @@ const tankImage = new Image();
 tankImage.src = "tank.png";
 
 const RANKING_KEY = "tankSurvivalRanking";
-const GAME_VERSION = "auto-fire-player-attack3x-v12";
+const GAME_VERSION = "player-power9-hp300-fixed-v13";
 
 let player;
 let playerBullets;
@@ -145,9 +145,9 @@ function resetGame() {
   playerName = typedName || "Player";
   scoreSaved = false;
   upgradeCounts = {
-    hp: 0,
+    hp: 300,
     shells: 0,
-    power: 0,
+    power: 9,
     speed: 0,
     fireRate: 0,
     dualCannon: 0
