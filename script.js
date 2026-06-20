@@ -26,7 +26,7 @@ const tankImage = new Image();
 tankImage.src = "tank.png";
 
 const RANKING_KEY = "tankSurvivalRanking";
-const GAME_VERSION = "tier-bullets-stronger-bosses-v10";
+const GAME_VERSION = "balance-player3x-bossbullets-breakable-v11";
 
 let player;
 let playerBullets;
@@ -158,10 +158,10 @@ function resetGame() {
     y: canvas.height / 2,
     radius: 22,
     speed: 250,
-    hp: 100,
-    maxHp: 100,
+    hp: 300,
+    maxHp: 300,
     shellCount: 1,
-    power: 1,
+    power: 2,
     reload: 0.22,
     dualCannon: false
   };
@@ -252,7 +252,7 @@ function spawnEnemy() {
     x,
     y,
     radius: 20,
-    hp: 8 + Math.floor(wave * 2.8) + Math.floor(getDifficultyBonus() * 1.4),
+    hp: Math.ceil((8 + Math.floor(wave * 2.8) + Math.floor(getDifficultyBonus() * 1.4)) * 1.5),
     speed: Math.min(180, 54 + wave * 9 + getDifficultyBonus() * 4.4),
     shootCooldown: 0.8 + Math.random() * 1.4,
     type: Math.random() > 0.5 ? "triangle" : "square"
@@ -264,7 +264,7 @@ function spawnMinion(x, y) {
     x: x + Math.random() * 120 - 60,
     y: y + Math.random() * 120 - 60,
     radius: 16,
-    hp: 6 + Math.floor(wave * 1.8),
+    hp: Math.ceil((6 + Math.floor(wave * 1.8)) * 1.5),
     speed: Math.min(200, 70 + wave * 6),
     shootCooldown: 1.0 + Math.random(),
     type: "triangle",
@@ -309,7 +309,7 @@ function spawnMinionAtRandom(kind = "normal") {
     x: p.x,
     y: p.y,
     radius: elite ? 19 : 16,
-    hp: elite ? 18 + Math.floor(wave * 3.2) : 8 + Math.floor(wave * 1.8),
+    hp: elite ? Math.ceil((18 + Math.floor(wave * 3.2)) * 1.5) : Math.ceil((8 + Math.floor(wave * 1.8)) * 1.5),
     speed: Math.min(elite ? 215 : 200, elite ? 88 + wave * 6.8 : 70 + wave * 6),
     shootCooldown: elite ? 0.7 + Math.random() * 0.6 : 1.0 + Math.random(),
     type: elite ? "square" : "triangle",
@@ -340,7 +340,10 @@ function shootSpiral(enemy, count, baseAngle, spread, speed, radius, damage, col
 
 
 function bossProjectile(enemy, options = {}) {
-  options.unbreakable = true;
+  options.unbreakable = false;
+  if (options.bulletHp == null) {
+    options.bulletHp = ((options.radius ?? 8) >= 12 || options.homing || options.splitOnExpire || options.mine || options.fireTrail || options.bounces) ? 4 : 1;
+  }
   return shootEnemyBullet(enemy, options);
 }
 
@@ -676,7 +679,7 @@ function shootEnemyBullet(enemy, options = {}) {
     vx: Math.cos(angle) * speed,
     vy: Math.sin(angle) * speed,
     radius: options.radius ?? 8,
-    damage: options.damage ?? (12 + wave * 2.8 + Math.floor(bonus * 1.2)),
+    damage: options.damage ?? ((12 + wave * 2.8 + Math.floor(bonus * 1.2)) * 1.5),
     life: options.life ?? 6,
     bounces: options.bounces ?? 0,
     fireTrail: options.fireTrail ?? false,
@@ -688,7 +691,8 @@ function shootEnemyBullet(enemy, options = {}) {
     splitOnExpire: options.splitOnExpire ?? false,
     mine: options.mine ?? false,
     sourceKind: enemy.kind ?? "enemy",
-    unbreakable: options.unbreakable ?? enemy.kind === "boss"
+    unbreakable: false,
+    bulletHp: options.bulletHp ?? (enemy.kind === "boss" && ((options.radius ?? 8) >= 12 || options.homing || options.splitOnExpire || options.mine || options.fireTrail || options.bounces) ? 4 : 1)
   });
 }
 
@@ -784,7 +788,7 @@ function updateEnemies(dt) {
     }
 
     if (getDistance(enemy, player) < enemy.radius + player.radius) {
-      player.hp -= enemy.kind === "boss" ? (90 + wave * 3) * dt : (24 + wave * 0.8) * dt;
+      player.hp -= enemy.kind === "boss" ? (90 + wave * 3) * dt : ((24 + wave * 0.8) * 1.5) * dt;
     }
   });
 }
@@ -855,11 +859,12 @@ function updateBullets(dt) {
       const crashDistance = playerBullet.radius + enemyBullet.radius;
       if (playerBullet.life > 0 && enemyBullet.life > 0 && getDistance(playerBullet, enemyBullet) < crashDistance) {
         playerBullet.life = 0;
-        if (!enemyBullet.unbreakable) {
+        enemyBullet.bulletHp = (enemyBullet.bulletHp ?? 1) - 1;
+        if (enemyBullet.bulletHp <= 0) {
           enemyBullet.life = 0;
           addParticles(enemyBullet.x, enemyBullet.y, "#facc15");
         } else {
-          addParticles(playerBullet.x, playerBullet.y, "#ef4444");
+          addParticles(enemyBullet.x, enemyBullet.y, "#93c5fd");
         }
       }
     });
@@ -901,7 +906,8 @@ function updateBullets(dt) {
           fireTrail: false,
           fireTimer: 0,
           color: "#fde047",
-          unbreakable: true,
+          unbreakable: false,
+          bulletHp: 1,
           homing: false,
           turnRate: 0,
           splitOnExpire: false,
@@ -1261,8 +1267,8 @@ function drawBullets() {
     ctx.fillStyle = bullet.color || "#f06455";
     ctx.fill();
     ctx.lineWidth = 2;
-    ctx.strokeStyle = bullet.unbreakable ? "#111827" : "#8f4039";
-    ctx.lineWidth = bullet.unbreakable ? 4 : 2;
+    ctx.strokeStyle = (bullet.bulletHp ?? 1) > 1 ? "#111827" : "#8f4039";
+    ctx.lineWidth = (bullet.bulletHp ?? 1) > 1 ? 4 : 2;
     ctx.stroke();
   });
 }
