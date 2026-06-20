@@ -26,7 +26,7 @@ const tankImage = new Image();
 tankImage.src = "tank.png";
 
 const RANKING_KEY = "tankSurvivalRanking";
-const GAME_VERSION = "balance-player3x-bossbullets-breakable-v11";
+const GAME_VERSION = "auto-fire-player-attack3x-v12";
 
 let player;
 let playerBullets;
@@ -161,7 +161,7 @@ function resetGame() {
     hp: 300,
     maxHp: 300,
     shellCount: 1,
-    power: 2,
+    power: 3,
     reload: 0.22,
     dualCannon: false
   };
@@ -741,7 +741,7 @@ function updatePlayer(dt) {
   player.y = clamp(player.y, player.radius, canvas.height - player.radius);
 
   fireTimer -= dt;
-  if (mouse.down && fireTimer <= 0) {
+  if (fireTimer <= 0) {
     shootPlayerBullet();
     fireTimer = player.reload;
   }
