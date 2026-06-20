@@ -26,7 +26,7 @@ const tankImage = new Image();
 tankImage.src = "tank.png";
 
 const RANKING_KEY = "tankSurvivalRanking";
-const GAME_VERSION = "attack45-bossboost-bigshot-explosion-v15";
+const GAME_VERSION = "upgrade-click-fixed-v16";
 
 let player;
 let playerBullets;
@@ -219,6 +219,10 @@ function getDistance(a, b) {
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
+}
+
+function isBossWaveNumber(n) {
+  return n % 5 === 0;
 }
 
 function isBossWave() {
@@ -1111,15 +1115,28 @@ function showUpgradeOptions() {
     button.type = "button";
     button.innerHTML = `<strong>${upgrade.title}</strong><span>${upgrade.text}</span>`;
     button.addEventListener("click", function () {
-      upgrade.apply();
-      if (isBossWaveNumber(wave + 1)) {
-        player.attackMultiplier = (player.attackMultiplier || 1) * 2;
-        addParticles(player.x, player.y, "#facc15");
+      try {
+        upgrade.apply();
+
+        // 다음 웨이브가 보스 웨이브라면 보스전 직전 공격력 2배
+        if (isBossWaveNumber(wave + 1)) {
+          player.attackMultiplier = (player.attackMultiplier || 1) * 2;
+          addParticles(player.x, player.y, "#facc15");
+        }
+
+        wave += 1;
+        upgradeOverlay.classList.add("hidden");
+        focusGame();
+        startWave();
+      } catch (error) {
+        console.error("Upgrade click error:", error);
+
+        // 오류가 나도 게임이 멈추지 않도록 강제로 다음 웨이브 진행
+        wave += 1;
+        upgradeOverlay.classList.add("hidden");
+        focusGame();
+        startWave();
       }
-      wave += 1;
-      upgradeOverlay.classList.add("hidden");
-      focusGame();
-      startWave();
     });
     upgradeList.appendChild(button);
   });
