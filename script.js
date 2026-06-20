@@ -26,7 +26,7 @@ const tankImage = new Image();
 tankImage.src = "tank.png";
 
 const RANKING_KEY = "tankSurvivalRanking";
-const GAME_VERSION = "final-boss-5wave-speedcap-v5";
+const GAME_VERSION = "side-cannon-same-direction-v9";
 
 let player;
 let playerBullets;
@@ -45,18 +45,22 @@ let scoreSaved = false;
 let lastTime = 0;
 
 const bossTypes = [
-  { id: "summoner", name: "소환 보스", color: "#a855f7" },
+  { id: "summoner", name: "마녀 소환 보스", color: "#a855f7" },
   { id: "bigShot", name: "거대 포탄 보스", color: "#ef4444" },
-  { id: "drain", name: "흡혈 보스", color: "#14b8a6" },
-  { id: "fire", name: "화염 보스", color: "#f97316" },
-  { id: "armor", name: "방어력 보스", color: "#64748b" },
-  { id: "bounce", name: "도탄 보스", color: "#38bdf8" },
+  { id: "drain", name: "흡혈 결계 보스", color: "#14b8a6" },
+  { id: "fire", name: "화염 지배자 보스", color: "#f97316" },
+  { id: "armor", name: "철갑 요새 보스", color: "#64748b" },
+  { id: "bounce", name: "도탄 폭풍 보스", color: "#38bdf8" },
   { id: "homing", name: "유도탄 보스", color: "#22c55e" },
-  { id: "laser", name: "레이저 보스", color: "#e879f9" },
+  { id: "laser", name: "회전 레이저 보스", color: "#e879f9" },
   { id: "splitter", name: "분열탄 보스", color: "#facc15" },
-  { id: "rush", name: "돌진 보스", color: "#fb7185" },
+  { id: "rush", name: "광폭 돌진 보스", color: "#fb7185" },
   { id: "sniper", name: "저격 보스", color: "#60a5fa" },
-  { id: "mine", name: "지뢰 보스", color: "#a3e635" }
+  { id: "mine", name: "지뢰 장판 보스", color: "#a3e635" },
+  { id: "vortex", name: "소용돌이 보스", color: "#818cf8" },
+  { id: "mirror", name: "거울 분신 보스", color: "#f472b6" },
+  { id: "wall", name: "탄막 장벽 보스", color: "#fb923c" },
+  { id: "curse", name: "저주 보스", color: "#a78bfa" }
 ];
 
 function focusGame() {
@@ -162,7 +166,7 @@ function resetGame() {
 }
 
 function getDifficultyBonus() {
-  return Math.max(0, wave - 12);
+  return Math.max(0, wave - 6);
 }
 
 function startWave() {
@@ -176,7 +180,7 @@ function startWave() {
   if (isBossWave()) {
     spawnBoss();
   } else {
-    enemiesToSpawn = 4 + Math.floor(wave * 1.8) + Math.floor(getDifficultyBonus() * 0.7);
+    enemiesToSpawn = 4 + Math.floor(wave * 3.6) + Math.floor(getDifficultyBonus() * 1.4);
   }
 
   updateHud();
@@ -230,8 +234,8 @@ function spawnEnemy() {
     x,
     y,
     radius: 20,
-    hp: 2 + Math.floor(wave * 0.28) + Math.floor(getDifficultyBonus() * 0.12),
-    speed: Math.min(180, 54 + wave * 4.5 + getDifficultyBonus() * 2.2),
+    hp: 2 + Math.floor(wave * 0.56) + Math.floor(getDifficultyBonus() * 0.24),
+    speed: Math.min(180, 54 + wave * 9 + getDifficultyBonus() * 4.4),
     shootCooldown: 0.8 + Math.random() * 1.4,
     type: Math.random() > 0.5 ? "triangle" : "square"
   });
@@ -242,8 +246,8 @@ function spawnMinion(x, y) {
     x: x + Math.random() * 120 - 60,
     y: y + Math.random() * 120 - 60,
     radius: 16,
-    hp: 2 + Math.floor(wave * 0.18),
-    speed: Math.min(200, 70 + wave * 3),
+    hp: 2 + Math.floor(wave * 0.36),
+    speed: Math.min(200, 70 + wave * 6),
     shootCooldown: 1.0 + Math.random(),
     type: "triangle",
     kind: "minion"
@@ -259,9 +263,9 @@ function spawnBoss() {
     x: canvas.width / 2,
     y: 90,
     radius: isArmorBoss ? 48 : 42,
-    hp: (220 + bossLevel * 120) * (isArmorBoss ? 2.2 : 1),
-    maxHp: (220 + bossLevel * 120) * (isArmorBoss ? 2.2 : 1),
-    speed: Math.min(150, 55 + bossLevel * 5),
+    hp: (220 + bossLevel * 240) * (isArmorBoss ? 2.2 : 1),
+    maxHp: (220 + bossLevel * 240) * (isArmorBoss ? 2.2 : 1),
+    speed: Math.min(150, 55 + bossLevel * 10),
     shootCooldown: 0.85,
     specialCooldown: 2.0,
     type: "boss",
@@ -272,77 +276,153 @@ function spawnBoss() {
   });
 }
 
+
+function randomMapPoint(margin = 70) {
+  return {
+    x: margin + Math.random() * Math.max(1, canvas.width - margin * 2),
+    y: margin + Math.random() * Math.max(1, canvas.height - margin * 2)
+  };
+}
+
+function spawnMinionAtRandom(kind = "normal") {
+  const p = randomMapPoint(80);
+  const elite = kind === "elite";
+  enemies.push({
+    x: p.x,
+    y: p.y,
+    radius: elite ? 19 : 16,
+    hp: elite ? 4 + Math.floor(wave * 0.6) : 2 + Math.floor(wave * 0.36),
+    speed: Math.min(elite ? 215 : 200, elite ? 88 + wave * 6.8 : 70 + wave * 6),
+    shootCooldown: elite ? 0.7 + Math.random() * 0.6 : 1.0 + Math.random(),
+    type: elite ? "square" : "triangle",
+    kind: "minion"
+  });
+  addParticles(p.x, p.y, elite ? "#c084fc" : "#a855f7");
+}
+
+function shootRadial(enemy, count, speed, radius, damage, color, angleOffset = 0) {
+  for (let i = 0; i < count; i += 1) {
+    const angle = angleOffset + (Math.PI * 2 / count) * i;
+    shootEnemyBullet(enemy, { angle, speed, radius, damage, color });
+  }
+}
+
+function shootSpiral(enemy, count, baseAngle, spread, speed, radius, damage, color) {
+  for (let i = 0; i < count; i += 1) {
+    shootEnemyBullet(enemy, {
+      angle: baseAngle + (i - (count - 1) / 2) * spread,
+      speed,
+      radius,
+      damage,
+      color
+    });
+  }
+}
+
+
+
+function bossProjectile(enemy, options = {}) {
+  options.unbreakable = true;
+  return shootEnemyBullet(enemy, options);
+}
+
+function teleportBoss(boss) {
+  const p = randomMapPoint(100);
+  addParticles(boss.x, boss.y, boss.color || "#ffffff");
+  boss.x = p.x;
+  boss.y = p.y;
+  addParticles(boss.x, boss.y, boss.color || "#ffffff");
+}
+
+function createWarningZone(x, y, radius, delay, damage, color) {
+  fireZones.push({
+    x,
+    y,
+    radius,
+    damage,
+    life: delay + 1.1,
+    warning: delay,
+    color: color || "#fb923c"
+  });
+}
+
+
 function shootBossPattern(boss) {
+  const aim = Math.atan2(player.y - boss.y, player.x - boss.x);
+  const bossLevel = Math.max(1, Math.floor(wave / 5));
+  const t = performance.now() / 1000;
+
   if (boss.bossId === "summoner") {
-    for (let i = 0; i < 4; i += 1) {
-      spawnMinion(boss.x, boss.y);
+    const summonCount = Math.min(9, 4 + Math.floor(bossLevel / 2));
+    for (let i = 0; i < summonCount; i += 1) {
+      spawnMinionAtRandom(i % 3 === 0 ? "elite" : "normal");
     }
+    shootRadial(boss, 10, 160 + wave * 4.4, 8, 10 + wave * 0.56, "#c084fc", t);
+    if (bossLevel % 2 === 0) teleportBoss(boss);
     return;
   }
 
   if (boss.bossId === "bigShot") {
-    shootEnemyBullet(boss, {
-      radius: 22,
-      damage: 45 + wave * 1.4,
-      speed: 170 + wave * 6,
-      color: "#7f1d1d",
-      unbreakable: true
+    bossProjectile(boss, {
+      radius: 26,
+      damage: 52 + wave * 2.8,
+      speed: 180 + wave * 11,
+      color: "#7f1d1d"
     });
+    shootSpiral(boss, 6, aim, 0.27, 195 + wave * 4.6, 8, 12 + wave * 0.45, "#fca5a5");
     return;
   }
 
   if (boss.bossId === "drain") {
     const distance = getDistance(boss, player);
-    if (distance < 290) {
-      player.hp -= 22;
-      boss.hp = Math.min(boss.maxHp, boss.hp + 42);
+    if (distance < 330) {
+      player.hp -= 36;
+      boss.hp = Math.min(boss.maxHp, boss.hp + 85);
       addParticles(player.x, player.y, "#14b8a6");
       addParticles(boss.x, boss.y, "#14b8a6");
     }
+    for (let i = 0; i < 3; i += 1) {
+      const p = randomMapPoint(90);
+      createWarningZone(p.x, p.y, 48, 0.8, 18 + wave * 0.35, "#14b8a6");
+    }
+    shootRadial(boss, 8, 150 + wave * 4.4, 8, 11 + wave * 0.5, "#2dd4bf", t * 0.7);
     return;
   }
 
   if (boss.bossId === "fire") {
-    for (let i = 0; i < 5; i += 1) {
-      const angle = Math.atan2(player.y - boss.y, player.x - boss.x) + (i - 2) * 0.24;
-      shootEnemyBullet(boss, {
-        angle,
-        radius: 10,
-        damage: 16 + wave * 0.55,
-        speed: 195 + wave * 5.5,
-        color: "#fb923c",
-        fireTrail: true
-      });
+    shootSpiral(boss, 9, aim, 0.16, 205 + wave * 9.6, 10, 16 + wave * 1.0, "#fb923c");
+    for (let i = 0; i < 4; i += 1) {
+      const p = randomMapPoint(90);
+      addFireZone(p.x, p.y);
     }
+    return;
+  }
+
+  if (boss.bossId === "armor") {
+    boss.hp = Math.min(boss.maxHp, boss.hp + 28 + bossLevel * 4);
+    shootRadial(boss, 14, 170 + wave * 5.6, 9, 13 + wave * 0.64, "#94a3b8", t * 0.9);
+    bossProjectile(boss, { angle: aim, radius: 15, damage: 28 + wave * 0.9, speed: 210 + wave * 5, color: "#475569" });
     return;
   }
 
   if (boss.bossId === "bounce") {
-    for (let i = 0; i < 6; i += 1) {
-      const angle = Math.atan2(player.y - boss.y, player.x - boss.x) + (i - 2.5) * 0.17;
-      shootEnemyBullet(boss, {
-        angle,
-        radius: 9,
-        damage: 18 + wave * 0.62,
-        speed: 235 + wave * 5.5,
-        color: "#38bdf8",
-        bounces: 4
-      });
-    }
+    shootSpiral(boss, 9, aim, 0.14, 240 + wave * 9.6, 9, 18 + wave * 1.1, "#38bdf8");
+    const before = enemyBullets.length;
+    shootRadial(boss, 8, 200 + wave * 6, 7, 12 + wave * 0.48, "#7dd3fc", t);
+    enemyBullets.slice(before).forEach(function (b) { b.bounces = Math.max(b.bounces, 5); b.unbreakable = true; });
     return;
   }
 
   if (boss.bossId === "homing") {
-    for (let i = 0; i < 3; i += 1) {
-      const angle = Math.atan2(player.y - boss.y, player.x - boss.x) + (i - 1) * 0.35;
-      shootEnemyBullet(boss, {
-        angle,
+    for (let i = 0; i < 5; i += 1) {
+      bossProjectile(boss, {
+        angle: aim + (i - 2) * 0.36,
         radius: 11,
-        damage: 18 + wave * 0.65,
-        speed: 135 + wave * 3.8,
+        damage: 18 + wave * 1.16,
+        speed: 140 + wave * 6.8,
         color: "#22c55e",
         homing: true,
-        turnRate: 2.6,
+        turnRate: 3.2,
         life: 7
       });
     }
@@ -350,98 +430,158 @@ function shootBossPattern(boss) {
   }
 
   if (boss.bossId === "laser") {
-    for (let i = 0; i < 9; i += 1) {
-      const angle = (Math.PI * 2 / 9) * i + performance.now() / 900;
-      shootEnemyBullet(boss, {
-        angle,
-        radius: 7,
-        damage: 13 + wave * 0.42,
-        speed: 255 + wave * 3.5,
-        color: "#e879f9",
-        life: 4.8
-      });
-    }
+    shootRadial(boss, 16, 285 + wave * 6.4, 7, 13 + wave * 0.68, "#e879f9", t * 1.8);
+    shootSpiral(boss, 5, aim, 0.07, 380 + wave * 7.6, 6, 22 + wave * 1.1, "#f0abfc");
     return;
   }
 
   if (boss.bossId === "splitter") {
-    for (let i = 0; i < 3; i += 1) {
-      const angle = Math.atan2(player.y - boss.y, player.x - boss.x) + (i - 1) * 0.28;
-      shootEnemyBullet(boss, {
-        angle,
-        radius: 13,
-        damage: 17 + wave * 0.5,
-        speed: 155 + wave * 4,
+    for (let i = 0; i < 5; i += 1) {
+      bossProjectile(boss, {
+        angle: aim + (i - 2) * 0.22,
+        radius: 14,
+        damage: 17 + wave * 0.9,
+        speed: 175 + wave * 7.6,
         color: "#facc15",
         splitOnExpire: true,
-        life: 2.2
+        life: 2.0
       });
     }
     return;
   }
 
   if (boss.bossId === "rush") {
-    const angle = Math.atan2(player.y - boss.y, player.x - boss.x);
-    boss.x += Math.cos(angle) * boss.speed * 1.6;
-    boss.y += Math.sin(angle) * boss.speed * 1.6;
+    const dashDistance = Math.min(260, boss.speed * 3.0);
+    boss.x += Math.cos(aim) * dashDistance;
+    boss.y += Math.sin(aim) * dashDistance;
     boss.x = clamp(boss.x, boss.radius, canvas.width - boss.radius);
     boss.y = clamp(boss.y, boss.radius + 70, canvas.height - boss.radius);
-    for (let i = 0; i < 6; i += 1) {
-      shootEnemyBullet(boss, {
-        angle: angle + (i - 2.5) * 0.32,
-        radius: 8,
-        damage: 14 + wave * 0.42,
-        speed: 185 + wave * 4,
-        color: "#fb7185"
-      });
-    }
+    shootRadial(boss, 12, 205 + wave * 6.4, 8, 15 + wave * 0.8, "#fb7185", aim);
     return;
   }
 
   if (boss.bossId === "sniper") {
-    shootEnemyBullet(boss, {
-      radius: 10,
-      damage: 38 + wave * 1.1,
-      speed: 390 + wave * 5,
+    bossProjectile(boss, {
+      radius: 11,
+      damage: 48 + wave * 2.1,
+      speed: 460 + wave * 8.4,
       color: "#60a5fa",
-      unbreakable: true,
-      life: 3.5
+      life: 3.3
     });
+    for (let i = 0; i < 2; i += 1) {
+      const p = randomMapPoint(90);
+      createWarningZone(p.x, p.y, 35, 0.55, 30 + wave * 0.7, "#60a5fa");
+    }
     return;
   }
 
   if (boss.bossId === "mine") {
-    for (let i = 0; i < 5; i += 1) {
-      const angle = Math.random() * Math.PI * 2;
-      shootEnemyBullet(boss, {
-        angle,
+    for (let i = 0; i < 8; i += 1) {
+      bossProjectile(boss, {
+        angle: Math.random() * Math.PI * 2,
         radius: 12,
-        damage: 20 + wave * 0.55,
-        speed: 65 + Math.random() * 55,
+        damage: 20 + wave * 1.0,
+        speed: 80 + Math.random() * 75,
         color: "#a3e635",
         mine: true,
-        life: 5.5
+        life: 6.2
+      });
+    }
+    shootRadial(boss, 7, 165 + wave * 4.6, 7, 11 + wave * 0.44, "#d9f99d", t);
+    return;
+  }
+
+  if (boss.bossId === "vortex") {
+    for (let i = 0; i < 18; i += 1) {
+      bossProjectile(boss, {
+        angle: t + i * 0.55,
+        radius: 7,
+        damage: 13 + wave * 0.65,
+        speed: 150 + i * 9 + wave * 3,
+        color: "#818cf8",
+        homing: i % 3 === 0,
+        turnRate: 1.4,
+        life: 5.2
       });
     }
     return;
   }
 
-  shootEnemyBullet(boss, { radius: 12, damage: 24 + wave * 0.8, speed: 190 + wave * 5.5, color: "#94a3b8" });
+  if (boss.bossId === "mirror") {
+    const mirrorPoints = [
+      { x: canvas.width - boss.x, y: boss.y },
+      { x: boss.x, y: canvas.height - boss.y }
+    ];
+    mirrorPoints.forEach(function (p) {
+      const fakeBoss = { x: p.x, y: p.y, kind: "boss" };
+      addParticles(p.x, p.y, "#f472b6");
+      bossProjectile(fakeBoss, {
+        angle: Math.atan2(player.y - p.y, player.x - p.x),
+        radius: 9,
+        damage: 16 + wave * 0.75,
+        speed: 220 + wave * 5,
+        color: "#f472b6"
+      });
+    });
+    shootSpiral(boss, 5, aim, 0.18, 205 + wave * 5, 8, 15 + wave * 0.65, "#f9a8d4");
+    return;
+  }
+
+  if (boss.bossId === "wall") {
+    for (let i = -5; i <= 5; i += 1) {
+      bossProjectile(boss, {
+        angle: aim + i * 0.055,
+        radius: 9,
+        damage: 14 + wave * 0.62,
+        speed: 210 + Math.abs(i) * 12 + wave * 4.6,
+        color: "#fb923c",
+        life: 5
+      });
+    }
+    return;
+  }
+
+  if (boss.bossId === "curse") {
+    player.hp -= 10;
+    for (let i = 0; i < 4; i += 1) {
+      const p = randomMapPoint(80);
+      createWarningZone(p.x, p.y, 56, 0.7, 24 + wave * 0.75, "#a78bfa");
+    }
+    bossProjectile(boss, {
+      angle: aim,
+      radius: 12,
+      damage: 24 + wave * 0.9,
+      speed: 165 + wave * 5,
+      color: "#a78bfa",
+      homing: true,
+      turnRate: 2.0,
+      life: 6
+    });
+    return;
+  }
+
+  bossProjectile(boss, { radius: 12, damage: 24 + wave * 1.6, speed: 190 + wave * 11, color: "#94a3b8" });
 }
 
 function shootPlayerBullet() {
   const angle = Math.atan2(mouse.y - player.y, mouse.x - player.x);
   const spread = 0.12;
-  const cannonAngles = player.dualCannon ? [angle, angle + Math.PI] : [angle];
 
-  cannonAngles.forEach(function (cannonAngle) {
+  // 보조 대포는 원래 대포 바로 한쪽 옆에 붙고, 둘 다 같은 방향으로 발사합니다.
+  // 예: --0-- → --00-
+  const cannonOffsets = player.dualCannon ? [0, 13] : [0];
+
+  cannonOffsets.forEach(function (sideOffset) {
+    const sideX = Math.cos(angle + Math.PI / 2) * sideOffset;
+    const sideY = Math.sin(angle + Math.PI / 2) * sideOffset;
+
     for (let i = 0; i < player.shellCount; i += 1) {
       const offset = (i - (player.shellCount - 1) / 2) * spread;
-      const shotAngle = cannonAngle + offset;
+      const shotAngle = angle + offset;
 
       playerBullets.push({
-        x: player.x + Math.cos(shotAngle) * 28,
-        y: player.y + Math.sin(shotAngle) * 28,
+        x: player.x + sideX + Math.cos(shotAngle) * 28,
+        y: player.y + sideY + Math.sin(shotAngle) * 28,
         vx: Math.cos(shotAngle) * 620,
         vy: Math.sin(shotAngle) * 620,
         radius: 6,
@@ -455,7 +595,7 @@ function shootPlayerBullet() {
 function shootEnemyBullet(enemy, options = {}) {
   const angle = options.angle ?? Math.atan2(player.y - enemy.y, player.x - enemy.x);
   const bonus = getDifficultyBonus();
-  const speed = options.speed ?? (130 + wave * 6.5 + bonus * 4.5);
+  const speed = options.speed ?? (130 + wave * 13 + bonus * 9);
 
   enemyBullets.push({
     x: enemy.x,
@@ -463,7 +603,7 @@ function shootEnemyBullet(enemy, options = {}) {
     vx: Math.cos(angle) * speed,
     vy: Math.sin(angle) * speed,
     radius: options.radius ?? 8,
-    damage: options.damage ?? (6 + wave * 0.55 + Math.floor(bonus * 0.25)),
+    damage: options.damage ?? (6 + wave * 1.1 + Math.floor(bonus * 0.5)),
     life: options.life ?? 6,
     bounces: options.bounces ?? 0,
     fireTrail: options.fireTrail ?? false,
@@ -473,7 +613,9 @@ function shootEnemyBullet(enemy, options = {}) {
     homing: options.homing ?? false,
     turnRate: options.turnRate ?? 0,
     splitOnExpire: options.splitOnExpire ?? false,
-    mine: options.mine ?? false
+    mine: options.mine ?? false,
+    sourceKind: enemy.kind ?? "enemy",
+    unbreakable: options.unbreakable ?? enemy.kind === "boss"
   });
 }
 
@@ -482,7 +624,7 @@ function addFireZone(x, y) {
     x,
     y,
     radius: 42,
-    damage: 12 + wave * 0.18,
+    damage: 12 + wave * 0.36,
     life: 3.4
   });
 }
@@ -534,7 +676,7 @@ function updateEnemies(dt) {
   if (enemiesToSpawn > 0 && spawnTimer <= 0) {
     spawnEnemy();
     enemiesToSpawn -= 1;
-    spawnTimer = Math.max(0.34, 1.15 - wave * 0.02 - getDifficultyBonus() * 0.008);
+    spawnTimer = Math.max(0.28, 1.15 - wave * 0.04 - getDifficultyBonus() * 0.016);
   }
 
   enemies.forEach(function (enemy) {
@@ -559,17 +701,17 @@ function updateEnemies(dt) {
     if (enemy.shootCooldown <= 0) {
       shootEnemyBullet(enemy);
       enemy.shootCooldown = enemy.kind === "boss"
-        ? Math.max(0.28, 0.95 - wave * 0.012)
-        : Math.max(0.52, 1.9 - wave * 0.03 - getDifficultyBonus() * 0.01);
+        ? Math.max(0.24, 0.95 - wave * 0.024)
+        : Math.max(0.42, 1.9 - wave * 0.06 - getDifficultyBonus() * 0.02);
     }
 
     if (enemy.kind === "boss" && enemy.specialCooldown <= 0) {
       shootBossPattern(enemy);
-      enemy.specialCooldown = Math.max(0.85, 2.35 - Math.floor(wave / 10) * 0.06);
+      enemy.specialCooldown = Math.max(0.7, 2.35 - Math.floor(wave / 5) * 0.06);
     }
 
     if (getDistance(enemy, player) < enemy.radius + player.radius) {
-      player.hp -= enemy.kind === "boss" ? 55 * dt : 11 * dt;
+      player.hp -= enemy.kind === "boss" ? 70 * dt : 16 * dt;
     }
   });
 }
@@ -677,16 +819,16 @@ function updateBullets(dt) {
         splitBullets.push({
           x: bullet.x,
           y: bullet.y,
-          vx: Math.cos(angle) * (150 + wave * 2.5),
-          vy: Math.sin(angle) * (150 + wave * 2.5),
+          vx: Math.cos(angle) * (150 + wave * 5),
+          vy: Math.sin(angle) * (150 + wave * 5),
           radius: 6,
-          damage: 9 + wave * 0.25,
+          damage: 9 + wave * 0.5,
           life: 2.8,
           bounces: 0,
           fireTrail: false,
           fireTimer: 0,
           color: "#fde047",
-          unbreakable: false,
+          unbreakable: true,
           homing: false,
           turnRate: 0,
           splitOnExpire: false,
@@ -705,7 +847,9 @@ function updateFireZones(dt) {
   fireZones.forEach(function (zone) {
     zone.life -= dt;
 
-    if (getDistance(zone, player) < zone.radius + player.radius) {
+    if (zone.warning) {
+      zone.warning -= dt;
+    } else if (getDistance(zone, player) < zone.radius + player.radius) {
       player.hp -= zone.damage * dt;
     }
   });
@@ -729,7 +873,7 @@ function updateParticles(dt) {
 
 function checkWaveClear() {
   if (gameState === "playing" && enemiesToSpawn === 0 && enemies.length === 0) {
-    if (wave >= 200) {
+    if (wave >= 100) {
       endVictory();
       return;
     }
@@ -772,10 +916,10 @@ function getUpgradePool() {
   const pool = [
     {
       title: "HP 증가",
-      text: "최대 체력 +25, 현재 체력 +100 회복",
+      text: "최대 체력 +25, 현재 체력 +100 회복 (최대 체력 초과 불가)",
       apply: function () {
         player.maxHp += 25;
-        player.hp = Math.min(player.maxHp + 75, player.hp + 100);
+        player.hp = Math.min(player.maxHp, player.hp + 100);
         upgradeCounts.hp += 1;
       }
     },
@@ -826,7 +970,7 @@ function getUpgradePool() {
   if (upgradeCounts.dualCannon < 1) {
     pool.push({
       title: "보조 대포 추가",
-      text: "대포가 하나 더 생겨 양쪽에서 같은 포탄을 발사합니다 (한 판에 1번만 선택 가능)",
+      text: "대포가 원래 대포 한쪽 옆에 하나 더 생겨 같은 방향으로 발사합니다 (한 판에 1번만 선택 가능)",
       apply: function () {
         player.dualCannon = true;
         upgradeCounts.dualCannon += 1;
@@ -877,15 +1021,15 @@ function endGame() {
 
 function endVictory() {
   gameState = "over";
-  wave = 200;
+  wave = 100;
 
   if (!scoreSaved) {
-    addRanking(playerName, 200);
+    addRanking(playerName, 100);
     scoreSaved = true;
   }
 
-  resultTitle.textContent = "200웨이브 클리어";
-  resultText.textContent = `${playerName}님이 200웨이브를 클리어했습니다!`;
+  resultTitle.textContent = "100웨이브 클리어";
+  resultText.textContent = `${playerName}님이 100웨이브를 클리어했습니다!`;
   gameOverOverlay.classList.remove("hidden");
 }
 
@@ -920,12 +1064,13 @@ function drawPlayer() {
     ctx.drawImage(tankImage, -32, -32, 64, 64);
 
     if (player.dualCannon) {
+      // 이미지 탱크 위에 보조 포신을 한쪽으로 붙여 표시
       ctx.rotate(-Math.PI / 2);
       ctx.fillStyle = "#6b737c";
       ctx.strokeStyle = "#47515b";
       ctx.lineWidth = 3;
-      ctx.fillRect(-38, -7, 32, 14);
-      ctx.strokeRect(-38, -7, 32, 14);
+      ctx.fillRect(-6, 7, 38, 12);
+      ctx.strokeRect(-6, 7, 38, 12);
     }
 
     ctx.restore();
@@ -939,12 +1084,14 @@ function drawPlayer() {
   ctx.strokeStyle = "#47515b";
   ctx.lineWidth = 3;
 
+  // 원래 포신
   ctx.fillRect(-6, -9, 38, 18);
   ctx.strokeRect(-6, -9, 38, 18);
 
+  // 보조 포신: 원래 포신 바로 한쪽 옆에 붙음
   if (player.dualCannon) {
-    ctx.fillRect(-38, -7, 32, 14);
-    ctx.strokeRect(-38, -7, 32, 14);
+    ctx.fillRect(-6, 9, 38, 12);
+    ctx.strokeRect(-6, 9, 38, 12);
   }
 
   ctx.rotate(Math.PI / 4);
@@ -1015,10 +1162,11 @@ function drawEnemy(enemy) {
 
 function drawFireZones() {
   fireZones.forEach(function (zone) {
-    ctx.globalAlpha = Math.max(0.15, zone.life / 3.4) * 0.55;
+    const isWarning = zone.warning && zone.warning > 0;
+    ctx.globalAlpha = isWarning ? 0.22 : Math.max(0.15, zone.life / 3.4) * 0.55;
     ctx.beginPath();
     ctx.arc(zone.x, zone.y, zone.radius, 0, Math.PI * 2);
-    ctx.fillStyle = "#fb923c";
+    ctx.fillStyle = isWarning ? "#ef4444" : (zone.color || "#fb923c");
     ctx.fill();
     ctx.globalAlpha = 1;
   });
