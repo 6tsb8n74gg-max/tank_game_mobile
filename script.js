@@ -26,7 +26,7 @@ const tankImage = new Image();
 tankImage.src = "tank.png";
 
 const RANKING_KEY = "tankSurvivalRanking";
-const GAME_VERSION = "dual-cannon-180-hp100-v2";
+const GAME_VERSION = "final-boss-5wave-speedcap-v5";
 
 let player;
 let playerBullets;
@@ -50,7 +50,13 @@ const bossTypes = [
   { id: "drain", name: "흡혈 보스", color: "#14b8a6" },
   { id: "fire", name: "화염 보스", color: "#f97316" },
   { id: "armor", name: "방어력 보스", color: "#64748b" },
-  { id: "bounce", name: "도탄 보스", color: "#38bdf8" }
+  { id: "bounce", name: "도탄 보스", color: "#38bdf8" },
+  { id: "homing", name: "유도탄 보스", color: "#22c55e" },
+  { id: "laser", name: "레이저 보스", color: "#e879f9" },
+  { id: "splitter", name: "분열탄 보스", color: "#facc15" },
+  { id: "rush", name: "돌진 보스", color: "#fb7185" },
+  { id: "sniper", name: "저격 보스", color: "#60a5fa" },
+  { id: "mine", name: "지뢰 보스", color: "#a3e635" }
 ];
 
 function focusGame() {
@@ -156,7 +162,7 @@ function resetGame() {
 }
 
 function getDifficultyBonus() {
-  return Math.max(0, wave - 8);
+  return Math.max(0, wave - 12);
 }
 
 function startWave() {
@@ -170,7 +176,7 @@ function startWave() {
   if (isBossWave()) {
     spawnBoss();
   } else {
-    enemiesToSpawn = 5 + Math.floor(wave * 2.4) + Math.floor(getDifficultyBonus() * 1.1);
+    enemiesToSpawn = 4 + Math.floor(wave * 1.8) + Math.floor(getDifficultyBonus() * 0.7);
   }
 
   updateHud();
@@ -193,11 +199,11 @@ function clamp(value, min, max) {
 }
 
 function isBossWave() {
-  return wave % 10 === 0;
+  return wave % 5 === 0;
 }
 
 function getBossType() {
-  const bossIndex = Math.floor(wave / 10 - 1) % bossTypes.length;
+  const bossIndex = Math.floor(wave / 5 - 1) % bossTypes.length;
   return bossTypes[bossIndex];
 }
 
@@ -224,8 +230,8 @@ function spawnEnemy() {
     x,
     y,
     radius: 20,
-    hp: 2 + Math.floor(wave * 0.38) + Math.floor(getDifficultyBonus() * 0.22),
-    speed: 58 + wave * 6 + getDifficultyBonus() * 3.5,
+    hp: 2 + Math.floor(wave * 0.28) + Math.floor(getDifficultyBonus() * 0.12),
+    speed: Math.min(180, 54 + wave * 4.5 + getDifficultyBonus() * 2.2),
     shootCooldown: 0.8 + Math.random() * 1.4,
     type: Math.random() > 0.5 ? "triangle" : "square"
   });
@@ -236,8 +242,8 @@ function spawnMinion(x, y) {
     x: x + Math.random() * 120 - 60,
     y: y + Math.random() * 120 - 60,
     radius: 16,
-    hp: 2 + Math.floor(wave * 0.25),
-    speed: 76 + wave * 4,
+    hp: 2 + Math.floor(wave * 0.18),
+    speed: Math.min(200, 70 + wave * 3),
     shootCooldown: 1.0 + Math.random(),
     type: "triangle",
     kind: "minion"
@@ -246,18 +252,18 @@ function spawnMinion(x, y) {
 
 function spawnBoss() {
   const bossType = getBossType();
-  const bossLevel = Math.floor(wave / 10);
+  const bossLevel = Math.floor(wave / 5);
   const isArmorBoss = bossType.id === "armor";
 
   enemies.push({
     x: canvas.width / 2,
     y: 90,
     radius: isArmorBoss ? 48 : 42,
-    hp: (120 + bossLevel * 70) * (isArmorBoss ? 1.9 : 1),
-    maxHp: (120 + bossLevel * 70) * (isArmorBoss ? 1.9 : 1),
-    speed: 45 + bossLevel * 4,
-    shootCooldown: 1.1,
-    specialCooldown: 2.6,
+    hp: (220 + bossLevel * 120) * (isArmorBoss ? 2.2 : 1),
+    maxHp: (220 + bossLevel * 120) * (isArmorBoss ? 2.2 : 1),
+    speed: Math.min(150, 55 + bossLevel * 5),
+    shootCooldown: 0.85,
+    specialCooldown: 2.0,
     type: "boss",
     kind: "boss",
     bossId: bossType.id,
@@ -268,22 +274,28 @@ function spawnBoss() {
 
 function shootBossPattern(boss) {
   if (boss.bossId === "summoner") {
-    for (let i = 0; i < 3; i += 1) {
+    for (let i = 0; i < 4; i += 1) {
       spawnMinion(boss.x, boss.y);
     }
     return;
   }
 
   if (boss.bossId === "bigShot") {
-    shootEnemyBullet(boss, { radius: 18, damage: 22 + wave, speed: 130 + wave * 7, color: "#b91c1c" });
+    shootEnemyBullet(boss, {
+      radius: 22,
+      damage: 45 + wave * 1.4,
+      speed: 170 + wave * 6,
+      color: "#7f1d1d",
+      unbreakable: true
+    });
     return;
   }
 
   if (boss.bossId === "drain") {
     const distance = getDistance(boss, player);
-    if (distance < 260) {
-      player.hp -= 14;
-      boss.hp = Math.min(boss.maxHp, boss.hp + 22);
+    if (distance < 290) {
+      player.hp -= 22;
+      boss.hp = Math.min(boss.maxHp, boss.hp + 42);
       addParticles(player.x, player.y, "#14b8a6");
       addParticles(boss.x, boss.y, "#14b8a6");
     }
@@ -291,13 +303,13 @@ function shootBossPattern(boss) {
   }
 
   if (boss.bossId === "fire") {
-    for (let i = 0; i < 4; i += 1) {
-      const angle = Math.atan2(player.y - boss.y, player.x - boss.x) + (i - 1.5) * 0.28;
+    for (let i = 0; i < 5; i += 1) {
+      const angle = Math.atan2(player.y - boss.y, player.x - boss.x) + (i - 2) * 0.24;
       shootEnemyBullet(boss, {
         angle,
         radius: 10,
-        damage: 10 + wave * 0.4,
-        speed: 170 + wave * 5,
+        damage: 16 + wave * 0.55,
+        speed: 195 + wave * 5.5,
         color: "#fb923c",
         fireTrail: true
       });
@@ -306,21 +318,115 @@ function shootBossPattern(boss) {
   }
 
   if (boss.bossId === "bounce") {
-    for (let i = 0; i < 5; i += 1) {
-      const angle = Math.atan2(player.y - boss.y, player.x - boss.x) + (i - 2) * 0.18;
+    for (let i = 0; i < 6; i += 1) {
+      const angle = Math.atan2(player.y - boss.y, player.x - boss.x) + (i - 2.5) * 0.17;
       shootEnemyBullet(boss, {
         angle,
         radius: 9,
-        damage: 12 + wave * 0.45,
-        speed: 210 + wave * 5,
+        damage: 18 + wave * 0.62,
+        speed: 235 + wave * 5.5,
         color: "#38bdf8",
-        bounces: 3
+        bounces: 4
       });
     }
     return;
   }
 
-  shootEnemyBullet(boss, { radius: 12, damage: 16 + wave * 0.5, speed: 170 + wave * 5, color: "#94a3b8" });
+  if (boss.bossId === "homing") {
+    for (let i = 0; i < 3; i += 1) {
+      const angle = Math.atan2(player.y - boss.y, player.x - boss.x) + (i - 1) * 0.35;
+      shootEnemyBullet(boss, {
+        angle,
+        radius: 11,
+        damage: 18 + wave * 0.65,
+        speed: 135 + wave * 3.8,
+        color: "#22c55e",
+        homing: true,
+        turnRate: 2.6,
+        life: 7
+      });
+    }
+    return;
+  }
+
+  if (boss.bossId === "laser") {
+    for (let i = 0; i < 9; i += 1) {
+      const angle = (Math.PI * 2 / 9) * i + performance.now() / 900;
+      shootEnemyBullet(boss, {
+        angle,
+        radius: 7,
+        damage: 13 + wave * 0.42,
+        speed: 255 + wave * 3.5,
+        color: "#e879f9",
+        life: 4.8
+      });
+    }
+    return;
+  }
+
+  if (boss.bossId === "splitter") {
+    for (let i = 0; i < 3; i += 1) {
+      const angle = Math.atan2(player.y - boss.y, player.x - boss.x) + (i - 1) * 0.28;
+      shootEnemyBullet(boss, {
+        angle,
+        radius: 13,
+        damage: 17 + wave * 0.5,
+        speed: 155 + wave * 4,
+        color: "#facc15",
+        splitOnExpire: true,
+        life: 2.2
+      });
+    }
+    return;
+  }
+
+  if (boss.bossId === "rush") {
+    const angle = Math.atan2(player.y - boss.y, player.x - boss.x);
+    boss.x += Math.cos(angle) * boss.speed * 1.6;
+    boss.y += Math.sin(angle) * boss.speed * 1.6;
+    boss.x = clamp(boss.x, boss.radius, canvas.width - boss.radius);
+    boss.y = clamp(boss.y, boss.radius + 70, canvas.height - boss.radius);
+    for (let i = 0; i < 6; i += 1) {
+      shootEnemyBullet(boss, {
+        angle: angle + (i - 2.5) * 0.32,
+        radius: 8,
+        damage: 14 + wave * 0.42,
+        speed: 185 + wave * 4,
+        color: "#fb7185"
+      });
+    }
+    return;
+  }
+
+  if (boss.bossId === "sniper") {
+    shootEnemyBullet(boss, {
+      radius: 10,
+      damage: 38 + wave * 1.1,
+      speed: 390 + wave * 5,
+      color: "#60a5fa",
+      unbreakable: true,
+      life: 3.5
+    });
+    return;
+  }
+
+  if (boss.bossId === "mine") {
+    for (let i = 0; i < 5; i += 1) {
+      const angle = Math.random() * Math.PI * 2;
+      shootEnemyBullet(boss, {
+        angle,
+        radius: 12,
+        damage: 20 + wave * 0.55,
+        speed: 65 + Math.random() * 55,
+        color: "#a3e635",
+        mine: true,
+        life: 5.5
+      });
+    }
+    return;
+  }
+
+  shootEnemyBullet(boss, { radius: 12, damage: 24 + wave * 0.8, speed: 190 + wave * 5.5, color: "#94a3b8" });
 }
 
 function shootPlayerBullet() {
@@ -349,7 +455,7 @@ function shootPlayerBullet() {
 function shootEnemyBullet(enemy, options = {}) {
   const angle = options.angle ?? Math.atan2(player.y - enemy.y, player.x - enemy.x);
   const bonus = getDifficultyBonus();
-  const speed = options.speed ?? (145 + wave * 9 + bonus * 7);
+  const speed = options.speed ?? (130 + wave * 6.5 + bonus * 4.5);
 
   enemyBullets.push({
     x: enemy.x,
@@ -357,12 +463,17 @@ function shootEnemyBullet(enemy, options = {}) {
     vx: Math.cos(angle) * speed,
     vy: Math.sin(angle) * speed,
     radius: options.radius ?? 8,
-    damage: options.damage ?? (8 + wave * 0.75 + Math.floor(bonus * 0.45)),
+    damage: options.damage ?? (6 + wave * 0.55 + Math.floor(bonus * 0.25)),
     life: options.life ?? 6,
     bounces: options.bounces ?? 0,
     fireTrail: options.fireTrail ?? false,
     fireTimer: 0,
-    color: options.color ?? "#f06455"
+    color: options.color ?? "#f06455",
+    unbreakable: options.unbreakable ?? false,
+    homing: options.homing ?? false,
+    turnRate: options.turnRate ?? 0,
+    splitOnExpire: options.splitOnExpire ?? false,
+    mine: options.mine ?? false
   });
 }
 
@@ -371,7 +482,7 @@ function addFireZone(x, y) {
     x,
     y,
     radius: 42,
-    damage: 18 + wave * 0.25,
+    damage: 12 + wave * 0.18,
     life: 3.4
   });
 }
@@ -423,7 +534,7 @@ function updateEnemies(dt) {
   if (enemiesToSpawn > 0 && spawnTimer <= 0) {
     spawnEnemy();
     enemiesToSpawn -= 1;
-    spawnTimer = Math.max(0.22, 1.05 - wave * 0.028 - getDifficultyBonus() * 0.014);
+    spawnTimer = Math.max(0.34, 1.15 - wave * 0.02 - getDifficultyBonus() * 0.008);
   }
 
   enemies.forEach(function (enemy) {
@@ -448,17 +559,17 @@ function updateEnemies(dt) {
     if (enemy.shootCooldown <= 0) {
       shootEnemyBullet(enemy);
       enemy.shootCooldown = enemy.kind === "boss"
-        ? Math.max(0.42, 1.25 - wave * 0.012)
-        : Math.max(0.36, 1.75 - wave * 0.042 - getDifficultyBonus() * 0.018);
+        ? Math.max(0.28, 0.95 - wave * 0.012)
+        : Math.max(0.52, 1.9 - wave * 0.03 - getDifficultyBonus() * 0.01);
     }
 
     if (enemy.kind === "boss" && enemy.specialCooldown <= 0) {
       shootBossPattern(enemy);
-      enemy.specialCooldown = Math.max(1.25, 3.15 - Math.floor(wave / 10) * 0.055);
+      enemy.specialCooldown = Math.max(0.85, 2.35 - Math.floor(wave / 10) * 0.06);
     }
 
     if (getDistance(enemy, player) < enemy.radius + player.radius) {
-      player.hp -= enemy.kind === "boss" ? 40 * dt : 18 * dt;
+      player.hp -= enemy.kind === "boss" ? 55 * dt : 11 * dt;
     }
   });
 }
@@ -474,6 +585,24 @@ function updateBullets(dt) {
     bullet.x += bullet.vx * dt;
     bullet.y += bullet.vy * dt;
     bullet.life -= dt;
+
+    if (bullet.homing && bullet.life > 0) {
+      const targetAngle = Math.atan2(player.y - bullet.y, player.x - bullet.x);
+      const currentAngle = Math.atan2(bullet.vy, bullet.vx);
+      let diff = targetAngle - currentAngle;
+      while (diff > Math.PI) diff -= Math.PI * 2;
+      while (diff < -Math.PI) diff += Math.PI * 2;
+      const maxTurn = bullet.turnRate * dt;
+      const nextAngle = currentAngle + clamp(diff, -maxTurn, maxTurn);
+      const speed = Math.hypot(bullet.vx, bullet.vy);
+      bullet.vx = Math.cos(nextAngle) * speed;
+      bullet.vy = Math.sin(nextAngle) * speed;
+    }
+
+    if (bullet.mine) {
+      bullet.vx *= Math.pow(0.35, dt);
+      bullet.vy *= Math.pow(0.35, dt);
+    }
 
     if (bullet.bounces > 0) {
       if (bullet.x < bullet.radius || bullet.x > canvas.width - bullet.radius) {
@@ -511,8 +640,12 @@ function updateBullets(dt) {
       const crashDistance = playerBullet.radius + enemyBullet.radius;
       if (playerBullet.life > 0 && enemyBullet.life > 0 && getDistance(playerBullet, enemyBullet) < crashDistance) {
         playerBullet.life = 0;
-        enemyBullet.life = 0;
-        addParticles(enemyBullet.x, enemyBullet.y, "#facc15");
+        if (!enemyBullet.unbreakable) {
+          enemyBullet.life = 0;
+          addParticles(enemyBullet.x, enemyBullet.y, "#facc15");
+        } else {
+          addParticles(playerBullet.x, playerBullet.y, "#ef4444");
+        }
       }
     });
   });
@@ -536,9 +669,36 @@ function updateBullets(dt) {
     return bullet.life > 0 && bullet.x > -60 && bullet.x < canvas.width + 60 && bullet.y > -60 && bullet.y < canvas.height + 60;
   });
 
+  const splitBullets = [];
+  enemyBullets.forEach(function (bullet) {
+    if (bullet.splitOnExpire && bullet.life <= 0 && bullet.x > -80 && bullet.x < canvas.width + 80 && bullet.y > -80 && bullet.y < canvas.height + 80) {
+      for (let i = 0; i < 8; i += 1) {
+        const angle = (Math.PI * 2 / 8) * i;
+        splitBullets.push({
+          x: bullet.x,
+          y: bullet.y,
+          vx: Math.cos(angle) * (150 + wave * 2.5),
+          vy: Math.sin(angle) * (150 + wave * 2.5),
+          radius: 6,
+          damage: 9 + wave * 0.25,
+          life: 2.8,
+          bounces: 0,
+          fireTrail: false,
+          fireTimer: 0,
+          color: "#fde047",
+          unbreakable: false,
+          homing: false,
+          turnRate: 0,
+          splitOnExpire: false,
+          mine: false
+        });
+      }
+    }
+  });
+
   enemyBullets = enemyBullets.filter(function (bullet) {
     return bullet.life > 0 && bullet.x > -80 && bullet.x < canvas.width + 80 && bullet.y > -80 && bullet.y < canvas.height + 80;
-  });
+  }).concat(splitBullets);
 }
 
 function updateFireZones(dt) {
@@ -586,10 +746,10 @@ function getUpgradeSummaryHTML() {
 
   return [
     `HP 증가: ${upgradeCounts.hp}회`,
-    `포탄 개수: ${upgradeCounts.shells}회`,
+    `포탄 개수: ${upgradeCounts.shells}/10회`,
     `포탄 위력: ${upgradeCounts.power}회`,
     `이동속도: ${upgradeCounts.speed}/1회`,
-    `공격속도: ${upgradeCounts.fireRate}/2회`,
+    `공격속도: ${upgradeCounts.fireRate}/1회`,
     `보조 대포: ${upgradeCounts.dualCannon}/1회`
   ].map(function (text) {
     return `<li>${text}</li>`;
@@ -612,19 +772,11 @@ function getUpgradePool() {
   const pool = [
     {
       title: "HP 증가",
-      text: "최대 체력 +25, 체력 100 회복",
+      text: "최대 체력 +25, 현재 체력 +100 회복",
       apply: function () {
         player.maxHp += 25;
-        player.hp = Math.min(player.maxHp, player.hp + 100);
+        player.hp = Math.min(player.maxHp + 75, player.hp + 100);
         upgradeCounts.hp += 1;
-      }
-    },
-    {
-      title: "포탄 개수 증가",
-      text: "한 번에 발사하는 포탄 +1",
-      apply: function () {
-        player.shellCount += 1;
-        upgradeCounts.shells += 1;
       }
     },
     {
@@ -637,6 +789,17 @@ function getUpgradePool() {
     }
   ];
 
+  if (upgradeCounts.shells < 10) {
+    pool.push({
+      title: "포탄 개수 증가",
+      text: "한 번에 발사하는 포탄 +1 (한 판에 10번까지 선택 가능)",
+      apply: function () {
+        player.shellCount += 1;
+        upgradeCounts.shells += 1;
+      }
+    });
+  }
+
   if (upgradeCounts.speed < 1) {
     pool.push({
       title: "이동속도 증가",
@@ -648,10 +811,10 @@ function getUpgradePool() {
     });
   }
 
-  if (upgradeCounts.fireRate < 2) {
+  if (upgradeCounts.fireRate < 1) {
     pool.push({
       title: "공격속도 증가",
-      text: "재장전 시간 15% 감소 (한 판에 2번까지 선택 가능)",
+      text: "재장전 시간 15% 감소 (한 판에 1번만 선택 가능)",
       apply: function () {
         player.reload = Math.max(0.11, player.reload * 0.85);
         upgradeCounts.fireRate += 1;
@@ -761,8 +924,8 @@ function drawPlayer() {
       ctx.fillStyle = "#6b737c";
       ctx.strokeStyle = "#47515b";
       ctx.lineWidth = 3;
-      ctx.fillRect(-32, -6, 64, 12);
-      ctx.strokeRect(-32, -6, 64, 12);
+      ctx.fillRect(-38, -7, 32, 14);
+      ctx.strokeRect(-38, -7, 32, 14);
     }
 
     ctx.restore();
@@ -877,7 +1040,8 @@ function drawBullets() {
     ctx.fillStyle = bullet.color || "#f06455";
     ctx.fill();
     ctx.lineWidth = 2;
-    ctx.strokeStyle = "#8f4039";
+    ctx.strokeStyle = bullet.unbreakable ? "#111827" : "#8f4039";
+    ctx.lineWidth = bullet.unbreakable ? 4 : 2;
     ctx.stroke();
   });
 }
@@ -957,7 +1121,20 @@ function setKey(key, value) {
 
 window.addEventListener("resize", resizeCanvas);
 
+function isTypingTarget(target) {
+  if (!target) return false;
+  const tagName = String(target.tagName || "").toLowerCase();
+  return tagName === "input" || tagName === "textarea" || target.isContentEditable;
+}
+
 window.addEventListener("keydown", function (event) {
+  if (isTypingTarget(event.target)) {
+    if (event.key === "Enter" && !startOverlay.classList.contains("hidden")) {
+      resetGame();
+    }
+    return;
+  }
+
   const key = normalizeKey(event);
 
   if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright", " "].includes(key)) {
@@ -973,6 +1150,10 @@ window.addEventListener("keydown", function (event) {
 }, { passive: false });
 
 window.addEventListener("keyup", function (event) {
+  if (isTypingTarget(event.target)) {
+    return;
+  }
+
   setKey(normalizeKey(event), false);
 }, { passive: false });
 
